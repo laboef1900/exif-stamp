@@ -30,7 +30,7 @@ xcodebuild -project CaptureOneDatePlugin.xcodeproj \
 Three options, easiest first:
 
 1. **`.pkg` installer** — `installer/build-pkg.sh` produces `dist/CaptureOneDatePlugin.pkg`. Double-click to install: drops the `.app` into `/Applications` and the Capture One Scripts-menu launcher into `~/Library/Application Scripts/com.captureone.captureone16/`.
-2. **`.dmg`** — `installer/build-dmg.sh` produces `dist/CaptureOneDatePlugin.dmg`. Mount, drag the app to Applications. The Scripts-menu launcher is bundled inside `Contents/Resources/`; copy it manually if you want it.
+2. **`.dmg`** — `installer/build-dmg.sh` produces `dist/CaptureOneDatePlugin.dmg`. Mount, drag the app to Applications. On first launch the app installs the Scripts-menu launcher into `~/Library/Application Scripts/com.captureone.captureone16/` automatically.
 3. **From Xcode** — open the project, run the `CaptureOneDatePlugin` scheme. Useful for development.
 
 Because v1.0 is unsigned, macOS Gatekeeper will warn on first launch. Right-click the `.app` → Open → confirm. Subsequent launches are unprompted.

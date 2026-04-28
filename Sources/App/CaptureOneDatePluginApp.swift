@@ -9,6 +9,10 @@ struct CaptureOneDatePluginApp: App {
         fsWriter:   { date, url in try FileDateWriter.setFileSystemDate(date, at: url) }
     )
 
+    init() {
+        ScriptsMenuInstaller.ensureInstalled()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView(vm: vm)
