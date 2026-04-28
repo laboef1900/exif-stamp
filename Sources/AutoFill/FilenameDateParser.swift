@@ -7,13 +7,62 @@ public enum FilenameDateParser {
     public static func parse(_ filename: String,
                              config: FilenamePatternConfig,
                              referenceTimeZone: TimeZone) -> Date? {
-        // Custom format wired up in Task 4.
+        if let custom = config.customFormat,
+           let d = matchCustom(filename: filename, format: custom, in: referenceTimeZone) {
+            return d
+        }
         for pattern in builtIn {
             if let d = pattern.match(filename, in: referenceTimeZone) {
                 return d
             }
         }
         return nil
+    }
+
+    /// Translates a token-style format ("Scan_yyyyMMdd_HHmmss_*") into a regex
+    /// with capture groups for year/month/day/hour/minute/second.
+    static func matchCustom(filename: String, format: String, in tz: TimeZone) -> Date? {
+        // Token list — order matters: 4-digit year before 2-digit, etc.
+        let tokens: [(String, String, String)] = [
+            ("yyyy", "(?<y>\\d{4})", "y"),
+            ("MM",   "(?<mo>\\d{2})", "mo"),
+            ("dd",   "(?<d>\\d{2})",  "d"),
+            ("HH",   "(?<h>\\d{2})",  "h"),
+            ("mm",   "(?<mi>\\d{2})", "mi"),
+            ("ss",   "(?<se>\\d{2})", "se"),
+        ]
+        var regexBody = ""
+        var i = format.startIndex
+        outer: while i < format.endIndex {
+            for (token, replacement, _) in tokens {
+                if format[i...].hasPrefix(token) {
+                    regexBody += replacement
+                    i = format.index(i, offsetBy: token.count)
+                    continue outer
+                }
+            }
+            let ch = format[i]
+            if ch == "*" {
+                regexBody += ".*?"
+            } else {
+                regexBody += NSRegularExpression.escapedPattern(for: String(ch))
+            }
+            i = format.index(after: i)
+        }
+        guard let re = try? NSRegularExpression(pattern: regexBody) else { return nil }
+        let range = NSRange(filename.startIndex..., in: filename)
+        guard let m = re.firstMatch(in: filename, range: range) else { return nil }
+        func group(_ name: String) -> Int? {
+            let nr = m.range(withName: name)
+            guard nr.location != NSNotFound, let r = Range(nr, in: filename) else { return nil }
+            return Int(filename[r])
+        }
+        var dc = DateComponents()
+        dc.year = group("y"); dc.month = group("mo"); dc.day = group("d")
+        dc.hour = group("h") ?? 0; dc.minute = group("mi") ?? 0; dc.second = group("se") ?? 0
+        guard dc.year != nil, dc.month != nil, dc.day != nil else { return nil }
+        var cal = Calendar(identifier: .gregorian); cal.timeZone = tz
+        return cal.date(from: dc)
     }
 
     static let builtIn: [BuiltInPattern] = [

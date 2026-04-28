@@ -52,4 +52,33 @@ final class FilenameDateParserTests: XCTestCase {
         let c = components(date)
         XCTAssertEqual(c.year, 2021); XCTAssertEqual(c.day, 15)
     }
+
+    func test_customFormat_extractsDate() throws {
+        let cfg = FilenamePatternConfig(customFormat: "Scan_yyyyMMdd_HHmmss_*")
+        let date = try XCTUnwrap(FilenameDateParser.parse("Scan_20180704_103015_001.jpg", config: cfg, referenceTimeZone: utc))
+        let c = components(date)
+        XCTAssertEqual(c.year, 2018); XCTAssertEqual(c.month, 7); XCTAssertEqual(c.day, 4)
+        XCTAssertEqual(c.hour, 10); XCTAssertEqual(c.minute, 30); XCTAssertEqual(c.second, 15)
+    }
+
+    func test_customFormat_takesPrecedence_overBuiltIns() throws {
+        // Built-in IMG pattern would yield 2021-03-15 14:20:30; custom yields 2024-12-25.
+        let cfg = FilenamePatternConfig(customFormat: "*_yyyy-MM-dd")
+        let date = try XCTUnwrap(FilenameDateParser.parse("IMG_20210315_142030_2024-12-25.jpg", config: cfg, referenceTimeZone: utc))
+        let c = components(date)
+        XCTAssertEqual(c.year, 2024); XCTAssertEqual(c.month, 12); XCTAssertEqual(c.day, 25)
+    }
+
+    func test_customFormat_noMatch_fallsBackToBuiltIn() throws {
+        let cfg = FilenamePatternConfig(customFormat: "Foo_yyyyMMdd_*")
+        // Custom doesn't match; built-in IMG_ does.
+        let date = try XCTUnwrap(FilenameDateParser.parse("IMG_20210315_142030.jpg", config: cfg, referenceTimeZone: utc))
+        let c = components(date)
+        XCTAssertEqual(c.year, 2021)
+    }
+
+    func test_customFormat_invalid_returnsNil_withoutCrashing() {
+        let cfg = FilenamePatternConfig(customFormat: "((((")
+        XCTAssertNil(FilenameDateParser.parse("anything.jpg", config: cfg, referenceTimeZone: utc))
+    }
 }
