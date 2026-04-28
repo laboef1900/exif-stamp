@@ -52,11 +52,16 @@ public final class RootViewModel: ObservableObject {
         }
     }
 
+    /*
+    // TODO Task 10: preview() removed — DateOperation.Plan no longer exists.
     public func preview() -> DateOperation.Plan {
         operation.preview(variants: variants)
     }
+    */
 
     public func apply(date: Date, overwritePolicy: DateOperation.OverwritePolicy) {
-        results = operation.execute(variants: variants, date: date, overwritePolicy: overwritePolicy)
+        // TODO Task 10: reshape to use editableVariants.
+        // Temporary stub — keeps build green during the v1.0 → v1.1 transition.
+        results = []
     }
 }
