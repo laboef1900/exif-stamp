@@ -21,3 +21,18 @@ final class VariantInfoTests: XCTestCase {
         XCTAssertEqual(Set([a, b]).count, 1)
     }
 }
+
+final class MockBridgeSanityTests: XCTestCase {
+    func test_mock_returnsConfiguredSelection() throws {
+        let mock = MockCaptureOneBridge()
+        let v = VariantInfo(filePath: "/x.jpg", filename: "x.jpg", currentExifDate: nil)
+        mock.selection = .success([v])
+        XCTAssertEqual(try mock.readSelection(), [v])
+    }
+
+    func test_mock_recordsReloadCalls() throws {
+        let mock = MockCaptureOneBridge()
+        try mock.reloadMetadata(for: ["/a", "/b"])
+        XCTAssertEqual(mock.reloadCalls, [["/a", "/b"]])
+    }
+}
