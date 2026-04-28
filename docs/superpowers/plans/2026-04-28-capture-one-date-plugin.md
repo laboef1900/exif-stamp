@@ -134,6 +134,9 @@ targets:
     platform: macOS
     sources:
       - path: Tests/CaptureOneDatePluginTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: CaptureOneDatePlugin
 ```
