@@ -9,7 +9,7 @@
 set -e
 
 SRC="/Applications/CaptureOneDatePlugin.app/Contents/Resources/Launch Capture One Date Plugin.scpt"
-DEST_DIR="$HOME/Library/Application Scripts/com.captureone.captureone16"
+DEST_DIR="$HOME/Library/Scripts/Capture One Scripts"
 
 mkdir -p "$DEST_DIR"
 cp "$SRC" "$DEST_DIR/"
