@@ -421,7 +421,30 @@ xcodebuild -project CaptureOneDatePlugin.xcodeproj -scheme CaptureOneDatePlugin 
 ```
 Expected: build error — `Fixtures` not found.
 
-- [ ] **Step 3: Implement `Fixtures.swift`**
+- [ ] **Step 3a: Add the shared EXIF date formatter**
+
+The same `yyyy:MM:dd HH:mm:ss / UTC / en_US_POSIX` formatter is needed by both `Fixtures` (test code) and `ExifWriter` (production, Task 4). Defining it once here avoids a silent-drift hazard.
+
+Create `Sources/Models/ExifDateFormatter.swift`:
+```swift
+import Foundation
+
+/// Single source of truth for the EXIF DateTimeOriginal text encoding.
+/// Both production code (ExifWriter) and tests (Fixtures) format dates
+/// through this formatter, so a change in one can never silently
+/// invalidate the other.
+enum ExifDateFormatter {
+    static let utc: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy:MM:dd HH:mm:ss"
+        f.timeZone = TimeZone(secondsFromGMT: 0)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+}
+```
+
+- [ ] **Step 3b: Implement `Fixtures.swift`**
 
 Create `Tests/CaptureOneDatePluginTests/Fixtures.swift`:
 ```swift
@@ -429,18 +452,11 @@ import Foundation
 import ImageIO
 import CoreGraphics
 import UniformTypeIdentifiers
+@testable import CaptureOneDatePlugin
 
 /// Generates throwaway image files in NSTemporaryDirectory for tests.
 /// Callers own the returned URL: use `defer { try? FileManager.default.removeItem(at: url) }`.
 enum Fixtures {
-    static let exifFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy:MM:dd HH:mm:ss"
-        f.timeZone = TimeZone(secondsFromGMT: 0)
-        f.locale = Locale(identifier: "en_US_POSIX")
-        return f
-    }()
-
     static func makeJPEG(date: Date?) throws -> URL {
         try makeImage(type: UTType.jpeg, date: date, ext: "jpg")
     }
@@ -470,7 +486,7 @@ enum Fixtures {
         ]
         if let date {
             props[kCGImagePropertyExifDictionary] = [
-                kCGImagePropertyExifDateTimeOriginal: exifFormatter.string(from: date)
+                kCGImagePropertyExifDateTimeOriginal: ExifDateFormatter.utc.string(from: date)
             ] as CFDictionary
         }
         CGImageDestinationAddImage(dest, cgImage, props as CFDictionary)
@@ -490,11 +506,11 @@ enum Fixtures {
         var props: [CFString: Any] = [:]
         if let date {
             props[kCGImagePropertyExifDictionary] = [
-                kCGImagePropertyExifDateTimeOriginal: exifFormatter.string(from: date),
-                kCGImagePropertyExifDateTimeDigitized: exifFormatter.string(from: date),
+                kCGImagePropertyExifDateTimeOriginal: ExifDateFormatter.utc.string(from: date),
+                kCGImagePropertyExifDateTimeDigitized: ExifDateFormatter.utc.string(from: date),
             ] as CFDictionary
             props[kCGImagePropertyTIFFDictionary] = [
-                kCGImagePropertyTIFFDateTime: exifFormatter.string(from: date)
+                kCGImagePropertyTIFFDateTime: ExifDateFormatter.utc.string(from: date)
             ] as CFDictionary
         }
         CGImageDestinationAddImage(dest, cgImage, props as CFDictionary)
@@ -599,14 +615,6 @@ import Foundation
 import ImageIO
 
 public enum ExifWriter {
-    private static let exifFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy:MM:dd HH:mm:ss"
-        f.timeZone = TimeZone(secondsFromGMT: 0)
-        f.locale = Locale(identifier: "en_US_POSIX")
-        return f
-    }()
-
     public static func readCaptureDate(at url: URL) throws -> Date? {
         guard let src = CGImageSourceCreateWithURL(url as CFURL, nil) else {
             throw DateOperationError.couldNotReadImage(path: url.path)
@@ -616,13 +624,15 @@ public enum ExifWriter {
         }
         let exif = props[kCGImagePropertyExifDictionary] as? [CFString: Any]
         if let s = exif?[kCGImagePropertyExifDateTimeOriginal] as? String,
-           let d = exifFormatter.date(from: s) {
+           let d = ExifDateFormatter.utc.date(from: s) {
             return d
         }
         return nil
     }
 }
 ```
+
+(`ExifDateFormatter.utc` is the shared formatter introduced in Task 3, Step 3a.)
 
 - [ ] **Step 4: Run, expect pass**
 
@@ -717,7 +727,7 @@ Add to `Sources/ExifWriter/ExifWriter.swift` inside `enum ExifWriter`:
             throw DateOperationError.couldNotReadImage(path: url.path)
         }
 
-        let formatted = exifFormatter.string(from: date)
+        let formatted = ExifDateFormatter.utc.string(from: date)
 
         // CGImageDestinationAddImageFromSource overrides at the top-level key, which
         // would drop other EXIF/TIFF tags. Read the existing sub-dicts and merge.

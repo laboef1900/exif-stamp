@@ -2,18 +2,11 @@ import Foundation
 import ImageIO
 import CoreGraphics
 import UniformTypeIdentifiers
+@testable import CaptureOneDatePlugin
 
 /// Generates throwaway image files in NSTemporaryDirectory for tests.
 /// Callers own the returned URL: use `defer { try? FileManager.default.removeItem(at: url) }`.
 enum Fixtures {
-    static let exifFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy:MM:dd HH:mm:ss"
-        f.timeZone = TimeZone(secondsFromGMT: 0)
-        f.locale = Locale(identifier: "en_US_POSIX")
-        return f
-    }()
-
     static func makeJPEG(date: Date?) throws -> URL {
         try makeImage(type: UTType.jpeg, date: date, ext: "jpg")
     }
@@ -43,7 +36,7 @@ enum Fixtures {
         ]
         if let date {
             props[kCGImagePropertyExifDictionary] = [
-                kCGImagePropertyExifDateTimeOriginal: exifFormatter.string(from: date)
+                kCGImagePropertyExifDateTimeOriginal: ExifDateFormatter.utc.string(from: date)
             ] as CFDictionary
         }
         CGImageDestinationAddImage(dest, cgImage, props as CFDictionary)
@@ -63,11 +56,11 @@ enum Fixtures {
         var props: [CFString: Any] = [:]
         if let date {
             props[kCGImagePropertyExifDictionary] = [
-                kCGImagePropertyExifDateTimeOriginal: exifFormatter.string(from: date),
-                kCGImagePropertyExifDateTimeDigitized: exifFormatter.string(from: date),
+                kCGImagePropertyExifDateTimeOriginal: ExifDateFormatter.utc.string(from: date),
+                kCGImagePropertyExifDateTimeDigitized: ExifDateFormatter.utc.string(from: date),
             ] as CFDictionary
             props[kCGImagePropertyTIFFDictionary] = [
-                kCGImagePropertyTIFFDateTime: exifFormatter.string(from: date)
+                kCGImagePropertyTIFFDateTime: ExifDateFormatter.utc.string(from: date)
             ] as CFDictionary
         }
         CGImageDestinationAddImage(dest, cgImage, props as CFDictionary)
