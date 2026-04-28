@@ -17,7 +17,17 @@ public enum ExifWriter {
         return nil
     }
 
+    /// v1.0-compatible overload — defaults TZ to the system's current zone so
+    /// callers that haven't migrated to the TZ-aware overload still get
+    /// OffsetTimeOriginal / OffsetTimeDigitized written, matching the v1.1 spec.
     public static func writeCaptureDate(_ date: Date, at url: URL) throws {
+        try writeCaptureDate(date, timeZone: .current, at: url)
+    }
+
+    /// v1.1 TZ-aware overload. When `timeZone` is non-nil, also writes
+    /// OffsetTimeOriginal + OffsetTimeDigitized formatted as `±HH:MM` for the
+    /// given target date (so DST is correctly resolved).
+    public static func writeCaptureDate(_ date: Date, timeZone: TimeZone?, at url: URL) throws {
         guard FileManager.default.fileExists(atPath: url.path) else {
             throw DateOperationError.fileNotFound(path: url.path)
         }
@@ -28,8 +38,6 @@ public enum ExifWriter {
             throw DateOperationError.couldNotReadImage(path: url.path)
         }
 
-        // ImageIO can read many formats it can't write (e.g., proprietary RAW). Pre-check
-        // so the user gets a meaningful error rather than a "write failed" surprise.
         let writableTypes = (CGImageDestinationCopyTypeIdentifiers() as? [String]) ?? []
         guard writableTypes.contains(typeId as String) else {
             throw DateOperationError.formatNotSupported(path: url.path)
@@ -37,12 +45,15 @@ public enum ExifWriter {
 
         let formatted = ExifDateFormatter.utc.string(from: date)
 
-        // CGImageDestinationAddImageFromSource overrides at the top-level key, which
-        // would drop other EXIF/TIFF tags. Read the existing sub-dicts and merge.
         let existingProps = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any] ?? [:]
         var exif = (existingProps[kCGImagePropertyExifDictionary] as? [CFString: Any]) ?? [:]
         exif[kCGImagePropertyExifDateTimeOriginal] = formatted
         exif[kCGImagePropertyExifDateTimeDigitized] = formatted
+        if let tz = timeZone {
+            let offset = formatOffset(tz, for: date)
+            exif[kCGImagePropertyExifOffsetTimeOriginal] = offset
+            exif[kCGImagePropertyExifOffsetTimeDigitized] = offset
+        }
         var tiff = (existingProps[kCGImagePropertyTIFFDictionary] as? [CFString: Any]) ?? [:]
         tiff[kCGImagePropertyTIFFDateTime] = formatted
 
@@ -61,22 +72,24 @@ public enum ExifWriter {
             try? FileManager.default.removeItem(at: tempURL)
             throw DateOperationError.writeFailed(path: url.path, underlying: "CGImageDestinationFinalize returned false")
         }
-
-        // CGImageDestinationAddImageFromSource returns Void, so a silent failure
-        // (e.g. truncated source ImageIO opened but couldn't decode at pixel level)
-        // would otherwise let us replace a valid original with a corrupt file.
-        // Re-open the temp and confirm it is a complete image before swapping.
         guard let verify = CGImageSourceCreateWithURL(tempURL as CFURL, nil),
               CGImageSourceGetStatus(verify) == .statusComplete else {
             try? FileManager.default.removeItem(at: tempURL)
             throw DateOperationError.writeFailed(path: url.path, underlying: "Output image failed integrity check")
         }
-
         do {
             _ = try FileManager.default.replaceItemAt(url, withItemAt: tempURL)
         } catch {
             try? FileManager.default.removeItem(at: tempURL)
             throw DateOperationError.writeFailed(path: url.path, underlying: error.localizedDescription)
         }
+    }
+
+    /// Formats a TimeZone offset for the given date as ±HH:MM (e.g. "+02:00", "-05:30").
+    static func formatOffset(_ tz: TimeZone, for date: Date) -> String {
+        let totalSeconds = tz.secondsFromGMT(for: date)
+        let sign = totalSeconds >= 0 ? "+" : "-"
+        let abs = Swift.abs(totalSeconds)
+        return String(format: "%@%02d:%02d", sign, abs / 3600, (abs % 3600) / 60)
     }
 }
