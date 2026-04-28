@@ -130,4 +130,44 @@ final class RootViewModelV11Tests: XCTestCase {
         XCTAssertEqual(vm.editableVariants[0].info.filePath, "/c.jpg")
         XCTAssertEqual(vm.editableVariants[0].targetDate, start)                              // c is now index 0
     }
+
+    func test_setDefaultTimeZone_recomputesFilenameStrategy_withNewTZ() {
+        let mock = MockCaptureOneBridge()
+        mock.selection = .success([
+            VariantInfo(filePath: "/IMG_20210315_142030.jpg", filename: "IMG_20210315_142030.jpg",
+                        currentExifDate: nil),
+        ])
+        let vm = makeVM(mock)
+        vm.loadSelection()
+        vm.setDefaultStrategy(.fromFilename(.init()))
+
+        // Switching the default TZ shifts how the parsed wall-clock date
+        // relates to seconds-since-epoch (the parser interprets filename digits
+        // as wall-clock in the reference TZ).
+        let utcDate = vm.editableVariants[0].targetDate!
+        vm.setDefaultTimeZone(TimeZone(identifier: "America/Los_Angeles")!)
+        let laDate = vm.editableVariants[0].targetDate!
+        XCTAssertNotEqual(utcDate, laDate)
+        // LA is behind UTC, so the same wall-clock filename "14:20:30" parsed
+        // against LA TZ yields a later UTC instant than parsed against UTC.
+        XCTAssertGreaterThan(laDate, utcDate)
+    }
+
+    func test_setRowTZOverride_persistsAcrossRecomputes() {
+        let mock = MockCaptureOneBridge()
+        mock.selection = .success([
+            VariantInfo(filePath: "/a.jpg", filename: "a.jpg", currentExifDate: nil),
+            VariantInfo(filePath: "/b.jpg", filename: "b.jpg", currentExifDate: nil),
+        ])
+        let vm = makeVM(mock)
+        vm.loadSelection()
+        let tokyo = TimeZone(identifier: "Asia/Tokyo")!
+        vm.setRowTZOverride(rowID: "/a.jpg", timeZone: tokyo)
+        XCTAssertEqual(vm.editableVariants[0].timeZoneOverride?.identifier, "Asia/Tokyo")
+        XCTAssertNil(vm.editableVariants[1].timeZoneOverride)
+
+        // Strategy switch must not clear per-row TZ override.
+        vm.setDefaultStrategy(.sameDate(Date()))
+        XCTAssertEqual(vm.editableVariants[0].timeZoneOverride?.identifier, "Asia/Tokyo")
+    }
 }

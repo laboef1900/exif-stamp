@@ -17,9 +17,11 @@ public enum ExifWriter {
         return nil
     }
 
-    /// v1.0 overload — writes only DateTimeOriginal/Digitized + TIFFDateTime, no TZ tags.
+    /// v1.0-compatible overload — defaults TZ to the system's current zone so
+    /// callers that haven't migrated to the TZ-aware overload still get
+    /// OffsetTimeOriginal / OffsetTimeDigitized written, matching the v1.1 spec.
     public static func writeCaptureDate(_ date: Date, at url: URL) throws {
-        try writeCaptureDate(date, timeZone: nil, at: url)
+        try writeCaptureDate(date, timeZone: .current, at: url)
     }
 
     /// v1.1 TZ-aware overload. When `timeZone` is non-nil, also writes

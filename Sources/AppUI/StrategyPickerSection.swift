@@ -159,5 +159,11 @@ struct IntervalField: View {
             .onChange(of: unit) { newUnit in seconds = amount * newUnit.divisor }
         }
         .onAppear { amount = seconds / unit.divisor }
+        // Sync the local amount when the bound seconds value changes externally —
+        // e.g., the strategy popup switches to a new strategy with its own default.
+        .onChange(of: seconds) { newSec in
+            let derived = newSec / unit.divisor
+            if abs(derived - amount) > 0.0001 { amount = derived }
+        }
     }
 }
