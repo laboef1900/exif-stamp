@@ -431,6 +431,7 @@ import CoreGraphics
 import UniformTypeIdentifiers
 
 /// Generates throwaway image files in NSTemporaryDirectory for tests.
+/// Callers own the returned URL: use `defer { try? FileManager.default.removeItem(at: url) }`.
 enum Fixtures {
     static let exifFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -455,7 +456,10 @@ enum Fixtures {
     static func makeJPEGWithGPS(date: Date?, lat: Double, lon: Double) throws -> URL {
         let url = uniqueTempURL(ext: "jpg")
         let cgImage = makeOnePixelImage()
-        let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.jpeg.identifier as CFString, 1, nil)!
+        guard let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.jpeg.identifier as CFString, 1, nil) else {
+            throw NSError(domain: "Fixtures", code: 2,
+                          userInfo: [NSLocalizedDescriptionKey: "Could not create JPEG destination at \(url.path)"])
+        }
         var props: [CFString: Any] = [
             kCGImagePropertyGPSDictionary: [
                 kCGImagePropertyGPSLatitude: abs(lat),
@@ -479,7 +483,10 @@ enum Fixtures {
     private static func makeImage(type: UTType, date: Date?, ext: String) throws -> URL {
         let url = uniqueTempURL(ext: ext)
         let cgImage = makeOnePixelImage()
-        let dest = CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil)!
+        guard let dest = CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil) else {
+            throw NSError(domain: "Fixtures", code: 2,
+                          userInfo: [NSLocalizedDescriptionKey: "Could not create \(type.identifier) destination at \(url.path)"])
+        }
         var props: [CFString: Any] = [:]
         if let date {
             props[kCGImagePropertyExifDictionary] = [
