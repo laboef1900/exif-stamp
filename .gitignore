@@ -21,3 +21,6 @@ Package.resolved
 
 # XcodeGen generated
 *.xcodeproj
+
+# Build outputs
+dist/

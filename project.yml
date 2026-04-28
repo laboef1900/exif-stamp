@@ -18,6 +18,8 @@ targets:
     platform: macOS
     sources:
       - path: Sources
+      - path: Resources/Launch Capture One Date Plugin.scpt
+        buildPhase: resources
     dependencies:
       - sdk: ScriptingBridge.framework
     settings:
