@@ -1,0 +1,38 @@
+name: CaptureOneDatePlugin
+options:
+  bundleIdPrefix: app.captureonedate
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+    DEAD_CODE_STRIPPING: YES
+    ENABLE_HARDENED_RUNTIME: YES
+    CODE_SIGN_IDENTITY: "-"           # ad-hoc local signing for v1.0
+    CODE_SIGN_STYLE: Manual
+targets:
+  CaptureOneDatePlugin:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources
+    info:
+      path: Sources/App/Info.plist
+      properties:
+        CFBundleName: $(PRODUCT_NAME)
+        CFBundleDisplayName: Capture One Date Plugin
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSAppleEventsUsageDescription: "Capture One Date Plugin needs to read your current selection from Capture One and tell it to reload metadata after writing dates."
+    entitlements:
+      path: Sources/App/CaptureOneDatePlugin.entitlements
+      properties:
+        com.apple.security.automation.apple-events: true
+  CaptureOneDatePluginTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/CaptureOneDatePluginTests
+    dependencies:
+      - target: CaptureOneDatePlugin
