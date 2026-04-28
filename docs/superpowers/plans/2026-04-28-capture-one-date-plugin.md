@@ -96,7 +96,8 @@ Append to `.gitignore`:
 
 - [ ] **Step 3: Write `project.yml`**
 
-Create `project.yml`:
+Create `project.yml`. The static `Info.plist` and `.entitlements` files (Steps 4–5) are the single source of truth — `project.yml` only references their paths so XcodeGen never overwrites them on regeneration.
+
 ```yaml
 name: CaptureOneDatePlugin
 options:
@@ -118,27 +119,23 @@ targets:
     platform: macOS
     sources:
       - path: Sources
-    info:
-      path: Sources/App/Info.plist
-      properties:
-        CFBundleName: $(PRODUCT_NAME)
-        CFBundleDisplayName: Capture One Date Plugin
-        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
-        NSAppleEventsUsageDescription: "Capture One Date Plugin needs to read your current selection from Capture One and tell it to reload metadata after writing dates."
-    entitlements:
-      path: Sources/App/CaptureOneDatePlugin.entitlements
-      properties:
-        com.apple.security.automation.apple-events: true
+    settings:
+      base:
+        INFOPLIST_FILE: Sources/App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/App/CaptureOneDatePlugin.entitlements
   CaptureOneDatePluginTests:
     type: bundle.unit-test
     platform: macOS
     sources:
       - path: Tests/CaptureOneDatePluginTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: CaptureOneDatePlugin
 ```
 
-- [ ] **Step 4: Write placeholder `Info.plist`**
+- [ ] **Step 4: Write `Info.plist`**
 
 Create `Sources/App/Info.plist`:
 ```xml
@@ -146,10 +143,31 @@ Create `Sources/App/Info.plist`:
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleDisplayName</key>
+    <string>Capture One Date Plugin</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Capture One Date Plugin needs to read your current selection from Capture One and tell it to reload metadata after writing dates.</string>
 </dict>
 </plist>
 ```
-(XcodeGen merges in the keys from `project.yml`.)
 
 - [ ] **Step 5: Write entitlements file**
 
@@ -159,6 +177,8 @@ Create `Sources/App/CaptureOneDatePlugin.entitlements`:
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
 </dict>
 </plist>
 ```
@@ -243,13 +263,17 @@ final class VariantInfoTests: XCTestCase {
         XCTAssertEqual(a, b)
     }
 
-    func test_dedupedByPath() {
+    func test_samePathDifferentDate_notEqual() {
         let date = Date()
         let a = VariantInfo(filePath: "/tmp/a.jpg", filename: "a.jpg", currentExifDate: nil)
         let b = VariantInfo(filePath: "/tmp/a.jpg", filename: "a.jpg", currentExifDate: date)
-        // Same path => treated as same entry by dedup logic; equality compares all fields.
         XCTAssertNotEqual(a, b)
-        XCTAssertEqual(a.filePath, b.filePath)
+    }
+
+    func test_dedupedInSet_bySameId() {
+        let a = VariantInfo(filePath: "/tmp/a.jpg", filename: "a.jpg", currentExifDate: nil)
+        let b = VariantInfo(filePath: "/tmp/a.jpg", filename: "a.jpg", currentExifDate: nil)
+        XCTAssertEqual(Set([a, b]).count, 1)
     }
 }
 ```
@@ -397,7 +421,30 @@ xcodebuild -project CaptureOneDatePlugin.xcodeproj -scheme CaptureOneDatePlugin 
 ```
 Expected: build error — `Fixtures` not found.
 
-- [ ] **Step 3: Implement `Fixtures.swift`**
+- [ ] **Step 3a: Add the shared EXIF date formatter**
+
+The same `yyyy:MM:dd HH:mm:ss / UTC / en_US_POSIX` formatter is needed by both `Fixtures` (test code) and `ExifWriter` (production, Task 4). Defining it once here avoids a silent-drift hazard.
+
+Create `Sources/Models/ExifDateFormatter.swift`:
+```swift
+import Foundation
+
+/// Single source of truth for the EXIF DateTimeOriginal text encoding.
+/// Both production code (ExifWriter) and tests (Fixtures) format dates
+/// through this formatter, so a change in one can never silently
+/// invalidate the other.
+enum ExifDateFormatter {
+    static let utc: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy:MM:dd HH:mm:ss"
+        f.timeZone = TimeZone(secondsFromGMT: 0)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+}
+```
+
+- [ ] **Step 3b: Implement `Fixtures.swift`**
 
 Create `Tests/CaptureOneDatePluginTests/Fixtures.swift`:
 ```swift
@@ -405,17 +452,11 @@ import Foundation
 import ImageIO
 import CoreGraphics
 import UniformTypeIdentifiers
+@testable import CaptureOneDatePlugin
 
 /// Generates throwaway image files in NSTemporaryDirectory for tests.
+/// Callers own the returned URL: use `defer { try? FileManager.default.removeItem(at: url) }`.
 enum Fixtures {
-    static let exifFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy:MM:dd HH:mm:ss"
-        f.timeZone = TimeZone(secondsFromGMT: 0)
-        f.locale = Locale(identifier: "en_US_POSIX")
-        return f
-    }()
-
     static func makeJPEG(date: Date?) throws -> URL {
         try makeImage(type: UTType.jpeg, date: date, ext: "jpg")
     }
@@ -431,7 +472,10 @@ enum Fixtures {
     static func makeJPEGWithGPS(date: Date?, lat: Double, lon: Double) throws -> URL {
         let url = uniqueTempURL(ext: "jpg")
         let cgImage = makeOnePixelImage()
-        let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.jpeg.identifier as CFString, 1, nil)!
+        guard let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.jpeg.identifier as CFString, 1, nil) else {
+            throw NSError(domain: "Fixtures", code: 2,
+                          userInfo: [NSLocalizedDescriptionKey: "Could not create JPEG destination at \(url.path)"])
+        }
         var props: [CFString: Any] = [
             kCGImagePropertyGPSDictionary: [
                 kCGImagePropertyGPSLatitude: abs(lat),
@@ -442,7 +486,7 @@ enum Fixtures {
         ]
         if let date {
             props[kCGImagePropertyExifDictionary] = [
-                kCGImagePropertyExifDateTimeOriginal: exifFormatter.string(from: date)
+                kCGImagePropertyExifDateTimeOriginal: ExifDateFormatter.utc.string(from: date)
             ] as CFDictionary
         }
         CGImageDestinationAddImage(dest, cgImage, props as CFDictionary)
@@ -455,15 +499,18 @@ enum Fixtures {
     private static func makeImage(type: UTType, date: Date?, ext: String) throws -> URL {
         let url = uniqueTempURL(ext: ext)
         let cgImage = makeOnePixelImage()
-        let dest = CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil)!
+        guard let dest = CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil) else {
+            throw NSError(domain: "Fixtures", code: 2,
+                          userInfo: [NSLocalizedDescriptionKey: "Could not create \(type.identifier) destination at \(url.path)"])
+        }
         var props: [CFString: Any] = [:]
         if let date {
             props[kCGImagePropertyExifDictionary] = [
-                kCGImagePropertyExifDateTimeOriginal: exifFormatter.string(from: date),
-                kCGImagePropertyExifDateTimeDigitized: exifFormatter.string(from: date),
+                kCGImagePropertyExifDateTimeOriginal: ExifDateFormatter.utc.string(from: date),
+                kCGImagePropertyExifDateTimeDigitized: ExifDateFormatter.utc.string(from: date),
             ] as CFDictionary
             props[kCGImagePropertyTIFFDictionary] = [
-                kCGImagePropertyTIFFDateTime: exifFormatter.string(from: date)
+                kCGImagePropertyTIFFDateTime: ExifDateFormatter.utc.string(from: date)
             ] as CFDictionary
         }
         CGImageDestinationAddImage(dest, cgImage, props as CFDictionary)
@@ -568,14 +615,6 @@ import Foundation
 import ImageIO
 
 public enum ExifWriter {
-    private static let exifFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy:MM:dd HH:mm:ss"
-        f.timeZone = TimeZone(secondsFromGMT: 0)
-        f.locale = Locale(identifier: "en_US_POSIX")
-        return f
-    }()
-
     public static func readCaptureDate(at url: URL) throws -> Date? {
         guard let src = CGImageSourceCreateWithURL(url as CFURL, nil) else {
             throw DateOperationError.couldNotReadImage(path: url.path)
@@ -585,13 +624,15 @@ public enum ExifWriter {
         }
         let exif = props[kCGImagePropertyExifDictionary] as? [CFString: Any]
         if let s = exif?[kCGImagePropertyExifDateTimeOriginal] as? String,
-           let d = exifFormatter.date(from: s) {
+           let d = ExifDateFormatter.utc.date(from: s) {
             return d
         }
         return nil
     }
 }
 ```
+
+(`ExifDateFormatter.utc` is the shared formatter introduced in Task 3, Step 3a.)
 
 - [ ] **Step 4: Run, expect pass**
 
@@ -686,7 +727,7 @@ Add to `Sources/ExifWriter/ExifWriter.swift` inside `enum ExifWriter`:
             throw DateOperationError.couldNotReadImage(path: url.path)
         }
 
-        let formatted = exifFormatter.string(from: date)
+        let formatted = ExifDateFormatter.utc.string(from: date)
 
         // CGImageDestinationAddImageFromSource overrides at the top-level key, which
         // would drop other EXIF/TIFF tags. Read the existing sub-dicts and merge.
@@ -711,6 +752,16 @@ Add to `Sources/ExifWriter/ExifWriter.swift` inside `enum ExifWriter`:
         guard CGImageDestinationFinalize(dest) else {
             try? FileManager.default.removeItem(at: tempURL)
             throw DateOperationError.writeFailed(path: url.path, underlying: "CGImageDestinationFinalize returned false")
+        }
+
+        // CGImageDestinationAddImageFromSource returns Void, so a silent failure
+        // (e.g. truncated source ImageIO opened but couldn't decode at pixel level)
+        // would otherwise let us replace a valid original with a corrupt file.
+        // Re-open the temp and confirm it is a complete image before swapping.
+        guard let verify = CGImageSourceCreateWithURL(tempURL as CFURL, nil),
+              CGImageSourceGetStatus(verify) == .statusComplete else {
+            try? FileManager.default.removeItem(at: tempURL)
+            throw DateOperationError.writeFailed(path: url.path, underlying: "Output image failed integrity check")
         }
 
         do {
@@ -1302,14 +1353,14 @@ sdef "/Applications/Capture One.app/Contents/Resources/Capture One.sdef" \
 ```
 Expected: `Sources/CaptureOneBridge/CaptureOne.h` is created.
 
-- [ ] **Step 2: Add a bridging header**
+- [ ] **Step 2: Add a bridging header and link ScriptingBridge**
 
 Create `Sources/CaptureOneBridge/CaptureOneDatePlugin-Bridging-Header.h`:
 ```objective-c
 #import "CaptureOne.h"
 ```
 
-Modify `project.yml` — add a `settings` block to the `CaptureOneDatePlugin` target. The full updated target stanza should look like this (the `settings` lines are new):
+Modify `project.yml` — add `SWIFT_OBJC_BRIDGING_HEADER` to the existing `settings.base` block of the app target, AND link the `ScriptingBridge.framework` SDK dependency. The updated target stanza should look like:
 
 ```yaml
   CaptureOneDatePlugin:
@@ -1317,20 +1368,13 @@ Modify `project.yml` — add a `settings` block to the `CaptureOneDatePlugin` ta
     platform: macOS
     sources:
       - path: Sources
+    dependencies:
+      - sdk: ScriptingBridge.framework
     settings:
       base:
+        INFOPLIST_FILE: Sources/App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/App/CaptureOneDatePlugin.entitlements
         SWIFT_OBJC_BRIDGING_HEADER: Sources/CaptureOneBridge/CaptureOneDatePlugin-Bridging-Header.h
-    info:
-      path: Sources/App/Info.plist
-      properties:
-        CFBundleName: $(PRODUCT_NAME)
-        CFBundleDisplayName: Capture One Date Plugin
-        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
-        NSAppleEventsUsageDescription: "Capture One Date Plugin needs to read your current selection from Capture One and tell it to reload metadata after writing dates."
-    entitlements:
-      path: Sources/App/CaptureOneDatePlugin.entitlements
-      properties:
-        com.apple.security.automation.apple-events: true
 ```
 
 Then regenerate:
@@ -1340,66 +1384,70 @@ xcodegen generate
 
 - [ ] **Step 3: Implement the real bridge**
 
+ScriptingBridge generates classes at runtime from the .sdef. The static type annotations from `sdp -fh` look like Objective-C interfaces but they have no `@implementation` — Swift type-cast operators (`as CaptureOneApplication?`, `as? [CaptureOneVariant]`) generate undefined-symbol errors at link time. The working pattern is `unsafeBitCast` on the `SBApplication` and KVC (`value(forKey:)` / `perform(Selector(...))`) for everything else. The generated `CaptureOne.h` is still useful as a property/selector reference.
+
 Create `Sources/CaptureOneBridge/CaptureOneBridge.swift`:
 ```swift
 import Foundation
 import ScriptingBridge
 
-/// Real ScriptingBridge implementation. The generated `CaptureOneApplication`,
-/// `CaptureOneDocument`, `CaptureOneVariant` etc. types come from CaptureOne.h
-/// (generated by `sdp` from the installed Capture One scripting dictionary).
+/// Real ScriptingBridge implementation. ScriptingBridge fabricates `CaptureOneApplication` etc.
+/// at runtime from the .sdef, so we use `unsafeBitCast` to type the app instance and KVC for
+/// property/method access. The generated `CaptureOne.h` is the source-of-truth reference for
+/// property names (`EXIFCaptureDate`, `parentImage`, `path`, `selected`, `reloadMetadata`).
 public final class CaptureOneBridge: CaptureOneBridging {
     private let bundleId = "com.captureone.captureone16"
 
     public init() {}
 
     public func readSelection() throws -> [VariantInfo] {
-        guard let app = SBApplication(bundleIdentifier: bundleId) as CaptureOneApplication? else {
+        guard let rawApp = SBApplication(bundleIdentifier: bundleId) else {
             throw CaptureOneBridgeError.captureOneNotRunning
         }
+        let app = unsafeBitCast(rawApp, to: CaptureOneApplication.self)
         guard app.isRunning else {
             throw CaptureOneBridgeError.captureOneNotRunning
         }
         guard let doc = app.currentDocument else {
             throw CaptureOneBridgeError.noDocumentOpen
         }
-        guard let allVariants = doc.variants?() as? [CaptureOneVariant] else {
-            return []
-        }
-        let selected = allVariants.filter { $0.selected ?? false }
-        return selected.compactMap { v -> VariantInfo? in
-            guard let parent = v.parentImage else { return nil }
-            // The exact property names below are from CaptureOne.h; if sdp generated
-            // different selectors (e.g. `path`, `pathString`, `file`), adjust here.
-            guard let path = parent.path else { return nil }
+        let variantArray = doc.variants() as NSArray
+        let selected = variantArray
+            .compactMap { $0 as? SBObject }
+            .filter { ($0.value(forKey: "selected") as? Bool) == true }
+        return selected.compactMap { obj -> VariantInfo? in
+            let v = obj as AnyObject
+            guard let parent = v.value(forKey: "parentImage") as? SBObject,
+                  let path = parent.value(forKey: "path") as? String else { return nil }
             let name = (path as NSString).lastPathComponent
-            let date = parent.EXIFCaptureDate    // may be nil if no date set
+            let date = parent.value(forKey: "EXIFCaptureDate") as? Date
             return VariantInfo(filePath: path, filename: name, currentExifDate: date)
         }
     }
 
     public func reloadMetadata(for paths: [String]) throws {
-        guard let app = SBApplication(bundleIdentifier: bundleId) as CaptureOneApplication?,
-              app.isRunning,
-              let doc = app.currentDocument,
-              let allVariants = doc.variants?() as? [CaptureOneVariant] else {
+        guard let rawApp = SBApplication(bundleIdentifier: bundleId) else {
             throw CaptureOneBridgeError.captureOneNotRunning
         }
-        let pathSet = Set(paths)
-        let toReload = allVariants.filter {
-            guard let p = $0.parentImage?.path else { return false }
-            return pathSet.contains(p)
+        let app = unsafeBitCast(rawApp, to: CaptureOneApplication.self)
+        guard app.isRunning, let doc = app.currentDocument else {
+            throw CaptureOneBridgeError.captureOneNotRunning
         }
-        for v in toReload {
-            // Reload command name varies by C1 version; common names: `reloadMetadata`, `reload metadata`.
-            // Prefer the property/method generated in CaptureOne.h. If a free `reload` is exposed on parent image:
-            v.parentImage?.reloadMetadata?()
+        let variantArray = doc.variants() as NSArray
+        let pathSet = Set(paths)
+        for obj in variantArray {
+            let v = obj as AnyObject
+            if let parentImage = v.value(forKey: "parentImage") as? SBObject,
+               let path = parentImage.value(forKey: "path") as? String,
+               pathSet.contains(path) {
+                v.perform(Selector(("reloadMetadata")))
+            }
         }
     }
 }
 ```
 
-> **If the generated header uses different selectors** (e.g., `image file path` instead of `path`, or `EXIF capture time` instead of `EXIFCaptureDate`), adjust the four property accesses above. Open `Sources/CaptureOneBridge/CaptureOne.h` and search for `EXIF` and `path` to find the actual names.
+> If the generated header uses different selector names (e.g., the `EXIFCaptureDate` vs `EXIF capture date` vs `EXIFCaptureTime`), update the KVC keys/selectors accordingly. Inspect `Sources/CaptureOneBridge/CaptureOne.h` after Step 1.
 
 - [ ] **Step 4: Manual verification — write a temporary smoke main**
 
@@ -1875,7 +1923,7 @@ struct ResultsView: View {
                 Label("\(successes) succeeded", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
                 Label("\(failures.count) failed", systemImage: "xmark.octagon.fill")
-                    .foregroundStyle(failures.isEmpty ? .secondary : .red)
+                    .foregroundStyle(failures.isEmpty ? AnyShapeStyle(.secondary) : AnyShapeStyle(.red))
                 Spacer()
                 Button("Done", action: onDone).keyboardShortcut(.defaultAction)
             }
