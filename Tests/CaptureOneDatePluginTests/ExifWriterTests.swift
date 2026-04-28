@@ -70,4 +70,22 @@ final class ExifWriterTests: XCTestCase {
             }
         }
     }
+
+    func test_writeCaptureDate_TIFF_roundTrip() throws {
+        let url = try Fixtures.makeTIFF(date: nil)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let target = Date(timeIntervalSince1970: 1_700_000_000)
+        try ExifWriter.writeCaptureDate(target, at: url)
+        let read = try ExifWriter.readCaptureDate(at: url)!
+        XCTAssertLessThan(abs(read.timeIntervalSince(target)), 1.5)
+    }
+
+    func test_writeCaptureDate_HEIC_roundTrip() throws {
+        let url = try Fixtures.makeHEIC(date: nil)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let target = Date(timeIntervalSince1970: 1_700_000_000)
+        try ExifWriter.writeCaptureDate(target, at: url)
+        let read = try ExifWriter.readCaptureDate(at: url)!
+        XCTAssertLessThan(abs(read.timeIntervalSince(target)), 1.5)
+    }
 }
