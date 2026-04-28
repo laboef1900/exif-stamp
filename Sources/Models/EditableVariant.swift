@@ -24,7 +24,3 @@ public struct EditableVariant: Identifiable, Equatable {
     public var id: String { info.filePath }
 }
 
-// Temporary placeholder — Task 2 supplies the full enum and removes this stub.
-public enum AutoFillStrategy: Equatable {
-    case _placeholder
-}
