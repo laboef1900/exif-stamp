@@ -33,5 +33,6 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/CaptureOneBridge/CaptureOneDatePlugin-Bridging-Header.h
     dependencies:
       - target: CaptureOneDatePlugin

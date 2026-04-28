@@ -28,6 +28,13 @@ public enum ExifWriter {
             throw DateOperationError.couldNotReadImage(path: url.path)
         }
 
+        // ImageIO can read many formats it can't write (e.g., proprietary RAW). Pre-check
+        // so the user gets a meaningful error rather than a "write failed" surprise.
+        let writableTypes = (CGImageDestinationCopyTypeIdentifiers() as? [String]) ?? []
+        guard writableTypes.contains(typeId as String) else {
+            throw DateOperationError.formatNotSupported(path: url.path)
+        }
+
         let formatted = ExifDateFormatter.utc.string(from: date)
 
         // CGImageDestinationAddImageFromSource overrides at the top-level key, which
