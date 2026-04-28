@@ -15,7 +15,7 @@ public final class RootViewModel: ObservableObject {
     public enum ApplyTarget { case all, selected }
 
     @Published public private(set) var state: UIState = .loading
-    @Published public private(set) var editableVariants: [EditableVariant] = []
+    @Published public var editableVariants: [EditableVariant] = []
     @Published public private(set) var results: [WriteResult] = []
     @Published public var defaultStrategy: AutoFillStrategy = .sameDate(Date())
     @Published public var defaultTimeZone: TimeZone = .current
