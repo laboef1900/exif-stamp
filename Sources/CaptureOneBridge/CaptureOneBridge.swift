@@ -10,35 +10,46 @@ public final class CaptureOneBridge: CaptureOneBridging {
     public init() {}
 
     public func readSelection() throws -> [VariantInfo] {
-        guard let app: CaptureOneApplication = SBApplication(bundleIdentifier: bundleId) else {
+        guard let rawApp = SBApplication(bundleIdentifier: bundleId) else {
             throw CaptureOneBridgeError.captureOneNotRunning
         }
+        let app = unsafeBitCast(rawApp, to: CaptureOneApplication.self)
         guard app.isRunning else {
             throw CaptureOneBridgeError.captureOneNotRunning
         }
         guard let doc = app.currentDocument else {
             throw CaptureOneBridgeError.noDocumentOpen
         }
-        let allVariants: [CaptureOneVariant] = (doc.variants?() as? [CaptureOneVariant]) ?? []
-        let selected = allVariants.filter { $0.selected }
-        return selected.compactMap { v -> VariantInfo? in
-            guard let parent = v.parentImage, let path = parent.path else { return nil }
+        let variantArray = doc.variants() as NSArray
+        let selected = variantArray.compactMap { $0 as? SBObject }.filter { ($0.value(forKey: "selected") as? Bool) == true }
+        return selected.compactMap { obj -> VariantInfo? in
+            let v = obj as AnyObject
+            guard let parent = v.value(forKey: "parentImage") as? SBObject else { return nil }
+            guard let path = parent.value(forKey: "path") as? String else { return nil }
             let name = (path as NSString).lastPathComponent
-            let date = parent.EXIFCaptureDate
+            let date = parent.value(forKey: "EXIFCaptureDate") as? Date
             return VariantInfo(filePath: path, filename: name, currentExifDate: date)
         }
     }
 
     public func reloadMetadata(for paths: [String]) throws {
-        guard let app: CaptureOneApplication = SBApplication(bundleIdentifier: bundleId),
-              app.isRunning,
+        guard let rawApp = SBApplication(bundleIdentifier: bundleId) else {
+            throw CaptureOneBridgeError.captureOneNotRunning
+        }
+        let app = unsafeBitCast(rawApp, to: CaptureOneApplication.self)
+        guard app.isRunning,
               let doc = app.currentDocument else {
             throw CaptureOneBridgeError.captureOneNotRunning
         }
-        let allVariants: [CaptureOneVariant] = (doc.variants?() as? [CaptureOneVariant]) ?? []
+        let variantArray = doc.variants() as NSArray
         let pathSet = Set(paths)
-        for v in allVariants where pathSet.contains(v.parentImage?.path ?? "") {
-            v.reloadMetadata?()
+        for obj in variantArray {
+            let v = obj as AnyObject
+            if let parentImage = v.value(forKey: "parentImage") as? SBObject,
+               let path = parentImage.value(forKey: "path") as? String,
+               pathSet.contains(path) {
+                v.perform(Selector(("reloadMetadata")))
+            }
         }
     }
 }

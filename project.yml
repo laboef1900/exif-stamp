@@ -18,6 +18,8 @@ targets:
     platform: macOS
     sources:
       - path: Sources
+    dependencies:
+      - sdk: ScriptingBridge.framework
     settings:
       base:
         INFOPLIST_FILE: Sources/App/Info.plist
