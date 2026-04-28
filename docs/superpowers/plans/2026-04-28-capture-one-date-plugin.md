@@ -1923,7 +1923,7 @@ struct ResultsView: View {
                 Label("\(successes) succeeded", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
                 Label("\(failures.count) failed", systemImage: "xmark.octagon.fill")
-                    .foregroundStyle(failures.isEmpty ? .secondary : .red)
+                    .foregroundStyle(failures.isEmpty ? AnyShapeStyle(.secondary) : AnyShapeStyle(.red))
                 Spacer()
                 Button("Done", action: onDone).keyboardShortcut(.defaultAction)
             }
