@@ -40,4 +40,44 @@ public final class DateOperation {
         let withDate = unique.filter { $0.currentExifDate != nil }
         return Plan(toWriteDirectly: withoutDate, needsOverwriteConfirmation: withDate)
     }
+
+    public func execute(variants: [VariantInfo], date: Date, overwritePolicy: OverwritePolicy) -> [WriteResult] {
+        let plan = preview(variants: variants)
+        let toWrite: [VariantInfo]
+        switch overwritePolicy {
+        case .skipExisting:
+            toWrite = plan.toWriteDirectly
+        case .overwriteAll:
+            toWrite = plan.toWriteDirectly + plan.needsOverwriteConfirmation
+        }
+
+        var results: [WriteResult] = []
+        for v in toWrite {
+            let url = URL(fileURLWithPath: v.filePath)
+            do {
+                try exifWriter(date, url)
+                do {
+                    try fsWriter(date, url)
+                    results.append(WriteResult(variant: v, outcome: .success(())))
+                } catch let e as DateOperationError {
+                    // EXIF wrote but filesystem-date set failed — partial success.
+                    results.append(WriteResult(variant: v, outcome: .failure(e)))
+                } catch {
+                    results.append(WriteResult(variant: v, outcome: .failure(
+                        .filesystemDateFailed(path: v.filePath, underlying: error.localizedDescription))))
+                }
+            } catch let e as DateOperationError {
+                results.append(WriteResult(variant: v, outcome: .failure(e)))
+            } catch {
+                results.append(WriteResult(variant: v, outcome: .failure(
+                    .writeFailed(path: v.filePath, underlying: error.localizedDescription))))
+            }
+        }
+
+        let writtenPaths = results.compactMap { $0.isSuccess ? $0.variant.filePath : nil }
+        if !writtenPaths.isEmpty {
+            try? reloader(writtenPaths)
+        }
+        return results
+    }
 }
