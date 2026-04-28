@@ -55,6 +55,16 @@ public enum ExifWriter {
             throw DateOperationError.writeFailed(path: url.path, underlying: "CGImageDestinationFinalize returned false")
         }
 
+        // CGImageDestinationAddImageFromSource returns Void, so a silent failure
+        // (e.g. truncated source ImageIO opened but couldn't decode at pixel level)
+        // would otherwise let us replace a valid original with a corrupt file.
+        // Re-open the temp and confirm it is a complete image before swapping.
+        guard let verify = CGImageSourceCreateWithURL(tempURL as CFURL, nil),
+              CGImageSourceGetStatus(verify) == .statusComplete else {
+            try? FileManager.default.removeItem(at: tempURL)
+            throw DateOperationError.writeFailed(path: url.path, underlying: "Output image failed integrity check")
+        }
+
         do {
             _ = try FileManager.default.replaceItemAt(url, withItemAt: tempURL)
         } catch {
