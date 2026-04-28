@@ -22,6 +22,7 @@ targets:
       base:
         INFOPLIST_FILE: Sources/App/Info.plist
         CODE_SIGN_ENTITLEMENTS: Sources/App/CaptureOneDatePlugin.entitlements
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/CaptureOneBridge/CaptureOneDatePlugin-Bridging-Header.h
   CaptureOneDatePluginTests:
     type: bundle.unit-test
     platform: macOS
