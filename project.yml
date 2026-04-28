@@ -18,17 +18,10 @@ targets:
     platform: macOS
     sources:
       - path: Sources
-    info:
-      path: Sources/App/Info.plist
-      properties:
-        CFBundleName: $(PRODUCT_NAME)
-        CFBundleDisplayName: Capture One Date Plugin
-        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
-        NSAppleEventsUsageDescription: "Capture One Date Plugin needs to read your current selection from Capture One and tell it to reload metadata after writing dates."
-    entitlements:
-      path: Sources/App/CaptureOneDatePlugin.entitlements
-      properties:
-        com.apple.security.automation.apple-events: true
+    settings:
+      base:
+        INFOPLIST_FILE: Sources/App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/App/CaptureOneDatePlugin.entitlements
   CaptureOneDatePluginTests:
     type: bundle.unit-test
     platform: macOS

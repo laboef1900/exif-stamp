@@ -96,7 +96,8 @@ Append to `.gitignore`:
 
 - [ ] **Step 3: Write `project.yml`**
 
-Create `project.yml`:
+Create `project.yml`. The static `Info.plist` and `.entitlements` files (Steps 4–5) are the single source of truth — `project.yml` only references their paths so XcodeGen never overwrites them on regeneration.
+
 ```yaml
 name: CaptureOneDatePlugin
 options:
@@ -118,17 +119,10 @@ targets:
     platform: macOS
     sources:
       - path: Sources
-    info:
-      path: Sources/App/Info.plist
-      properties:
-        CFBundleName: $(PRODUCT_NAME)
-        CFBundleDisplayName: Capture One Date Plugin
-        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
-        NSAppleEventsUsageDescription: "Capture One Date Plugin needs to read your current selection from Capture One and tell it to reload metadata after writing dates."
-    entitlements:
-      path: Sources/App/CaptureOneDatePlugin.entitlements
-      properties:
-        com.apple.security.automation.apple-events: true
+    settings:
+      base:
+        INFOPLIST_FILE: Sources/App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/App/CaptureOneDatePlugin.entitlements
   CaptureOneDatePluginTests:
     type: bundle.unit-test
     platform: macOS
@@ -141,7 +135,7 @@ targets:
       - target: CaptureOneDatePlugin
 ```
 
-- [ ] **Step 4: Write placeholder `Info.plist`**
+- [ ] **Step 4: Write `Info.plist`**
 
 Create `Sources/App/Info.plist`:
 ```xml
@@ -149,10 +143,31 @@ Create `Sources/App/Info.plist`:
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleDisplayName</key>
+    <string>Capture One Date Plugin</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Capture One Date Plugin needs to read your current selection from Capture One and tell it to reload metadata after writing dates.</string>
 </dict>
 </plist>
 ```
-(XcodeGen merges in the keys from `project.yml`.)
 
 - [ ] **Step 5: Write entitlements file**
 
@@ -162,6 +177,8 @@ Create `Sources/App/CaptureOneDatePlugin.entitlements`:
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
 </dict>
 </plist>
 ```
