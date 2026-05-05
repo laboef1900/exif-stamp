@@ -83,12 +83,9 @@ Path 1 is the modern, recommended approach and is what we'll use.
 
 ## Generation pipeline
 
-The four source SVGs are converted to PNGs by a small shell script (`installer/build-appicon.sh`) using one of:
+The four source SVGs are converted to PNGs by a small shell script (`installer/build-appicon.sh`) using `rsvg-convert` (install via `brew install librsvg`). The script picks the right source SVG per output size based on the tier table above. It is idempotent and committed alongside the SVGs so the icon can be rebuilt in CI or by another developer.
 
-- `rsvg-convert` (preferred — high-quality, deterministic, available via `brew install librsvg`)
-- `qlmanage` (fallback — bundled with macOS but lower quality)
-
-The script picks the right source SVG per output size based on the tier table above. It is idempotent and committed alongside the SVGs so the icon can be rebuilt in CI or by another developer.
+**SVG `textPath` caveat.** `rsvg-convert` (as of librsvg 2.62) silently drops SVG `textPath` elements — anything rendered via `<textPath>` will not appear in the output. The Full tier's curved outer text is therefore baked as individually-positioned `<text>` glyphs computed by `installer/curved-text.py`. If the seal geometry, font, or copy changes, regenerate those glyphs by running that script and pasting its output into `tier-full.svg`.
 
 ## Out of scope
 

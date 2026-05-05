@@ -20,6 +20,8 @@ targets:
       - path: Sources
       - path: Resources/Launch Capture One Date Plugin.scpt
         buildPhase: resources
+      - path: Resources/Assets.xcassets
+        buildPhase: resources
     dependencies:
       - sdk: ScriptingBridge.framework
     settings:
@@ -27,6 +29,7 @@ targets:
         INFOPLIST_FILE: Sources/App/Info.plist
         CODE_SIGN_ENTITLEMENTS: Sources/App/CaptureOneDatePlugin.entitlements
         SWIFT_OBJC_BRIDGING_HEADER: Sources/CaptureOneBridge/CaptureOneDatePlugin-Bridging-Header.h
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
   CaptureOneDatePluginTests:
     type: bundle.unit-test
     platform: macOS
