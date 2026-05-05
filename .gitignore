@@ -24,3 +24,6 @@ Package.resolved
 
 # Build outputs
 dist/
+
+# Brainstorming companion
+.superpowers/
