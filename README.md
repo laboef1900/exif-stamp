@@ -27,11 +27,10 @@ xcodebuild -project CaptureOneDatePlugin.xcodeproj \
 
 ## Install
 
-Three options, easiest first:
+Two options, easiest first:
 
-1. **`.pkg` installer** — `installer/build-pkg.sh` produces `dist/CaptureOneDatePlugin.pkg`. Double-click to install: drops the `.app` into `/Applications` and the **Exif Stamp** Scripts-menu launcher into `~/Library/Scripts/Capture One Scripts/`.
-2. **`.dmg`** — `installer/build-dmg.sh` produces `dist/CaptureOneDatePlugin.dmg`. Mount, drag the app to Applications. On first launch the app installs the Scripts-menu launcher automatically.
-3. **From Xcode** — open the project, run the `CaptureOneDatePlugin` scheme. Useful for development.
+1. **`.dmg`** — `installer/build-dmg.sh` produces `dist/Exif Stamp.dmg`. Mount, drag the app to Applications. On first launch the app installs the Scripts-menu launcher automatically.
+2. **From Xcode** — open the project, run the `CaptureOneDatePlugin` scheme. Useful for development.
 
 Because v1.0 is unsigned, macOS Gatekeeper will warn on first launch. Right-click the `.app` → Open → confirm. Subsequent launches are unprompted.
 
@@ -46,8 +45,8 @@ The app modifies files in place. **Back up first.**
 
 ## Status
 
-- v1.0: unsigned local build, JPEG/TIFF/HEIC, no undo, no RAW.
-- v1.1 (planned): Developer ID code-signing and notarisation.
+- v1.1: per-row dates, strategies, TZ, presets, history/undo, drop-files, RAW via ExifTool (`brew install exiftool`).
+- Unsigned local build. No notarisation.
 
 ## Design
 

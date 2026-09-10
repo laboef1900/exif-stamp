@@ -39,4 +39,23 @@ final class BackupStoreTests: XCTestCase {
             }
         }
     }
+
+    func test_prune_deletesBackupsOlderThanMaxAge() throws {
+        let url = try Fixtures.makeJPEG(date: nil)
+        let dir = url.deletingLastPathComponent()
+        let backupDir = dir.appendingPathComponent(BackupStore.directoryName)
+        defer {
+            try? FileManager.default.removeItem(at: url)
+            try? FileManager.default.removeItem(at: backupDir)
+        }
+        try FileManager.default.createDirectory(at: backupDir, withIntermediateDirectories: true)
+        let old = backupDir.appendingPathComponent("\(url.lastPathComponent).100.bak")
+        let recent = backupDir.appendingPathComponent("\(url.lastPathComponent).\(Int(Date().timeIntervalSince1970)).bak")
+        try Data("old".utf8).write(to: old)
+        try Data("new".utf8).write(to: recent)
+        try BackupStore.prune(directories: [backupDir], maxAgeDays: 1, maxSizeMB: 1024,
+                              now: Date(timeIntervalSince1970: 1_700_000_000))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: old.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: recent.path))
+    }
 }

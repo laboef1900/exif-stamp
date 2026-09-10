@@ -13,33 +13,34 @@ A circular ink-stamp mark — the "EXIF date stamp" — sitting on a dark photog
 
 ## Visual specification
 
-### Palette (locked)
+### Palette
 
 | Token             | Hex       | Usage                                       |
 |-------------------|-----------|---------------------------------------------|
-| `bg-top`          | `#2A2A2C` | Background gradient top                     |
-| `bg-bottom`       | `#0E0E10` | Background gradient bottom (vertical)       |
-| `ink-light`       | `#EE6A4A` | Stamp ink — top of vertical gradient        |
-| `ink-dark`        | `#D2492C` | Stamp ink — bottom of vertical gradient     |
-| `ink-flat`        | `#E85A3A` | Solid ink (used in mid/small/tiny tiers)    |
-| `mountain`        | `#FAFAFA` | Faint photo silhouette behind seal, 18% α   |
+| `bg-top`          | `#2A221C` | Warm darkroom background top                |
+| `bg-bottom`       | `#080706` | Background bottom                           |
+| `ink-light`       | `#FF6A42` | Stamp ink — lit edge                        |
+| `ink-mid`         | `#E44528` | Stamp ink — body                            |
+| `ink-dark`        | `#B32A18` | Stamp ink — shadow                          |
+| `cream`           | `#F3E6D8` | Type on the pad                             |
+| `sun`             | `#F6D7B0` | Faint photographic highlight, ~16% α        |
 
 ### Composition
 
-- **Canvas:** 1024 × 1024 px, rounded rect (squircle approximation, `rx ≈ 22.4%`).
-- **Background:** vertical gradient (`bg-top` → `bg-bottom`).
-- **Photo silhouette:** simple mountain-range polygon across the lower half, 18 % opacity white, evokes "a photo" without committing to one.
-- **Seal:** centered, rotated −6°. Two concentric rings (outer ø ≈ 62 % canvas, inner ø ≈ 52 %).
-- **Inner content varies by size tier** (see below).
+- **Canvas:** 1024 × 1024 px, squircle clip `rx ≈ 22.4%`.
+- **Background:** warm vertical gradient + radial vignette.
+- **Photo:** layered mountain polygons + a pale sun disc (full/mid only).
+- **Seal:** dropped slightly with a shadow; inner pad fill; two ink rings; cream rim type on the full tier.
+- **Center:** `EXIF` over a short date `12 JUN` (decorative stamp date, not the user's).
 
 ### Size tiers
 
 | Tier      | Sizes (px)        | Contents                                                                 |
 |-----------|-------------------|--------------------------------------------------------------------------|
-| Full      | 1024, 512, 256    | Curved outer text "EXIF · STAMP · EXIF · STAMP ·", "EXIF", divider, "2026·05·05", both rings. Stamp ink uses vertical gradient. |
-| Mid       | 128, 64           | Curved outer text removed. "EXIF" and date scaled up. Strokes thickened. |
-| Small     | 32                | Date removed. Just the seal rings + "EXIF". Strokes thickened further so rings survive. |
-| Tiny      | 16                | Pure silhouette glyph: outer ring + filled red disc + dark horizontal bar. No type. Recognisable as a stamp. |
+| Full      | 1024, 512, 256    | Full rim `EXIF·STAMP·` × 4, pad, rings, `EXIF` / `12 JUN`, photo + sun. |
+| Mid       | 128, 64           | No rim type. Pad, rings, `EXIF` / `12 JUN`, simplified mountains.        |
+| Small     | 32                | Rings + `EXIF` only.                                                     |
+| Tiny      | 16                | Outer ring + filled disc + one date bar.                                 |
 
 The tier breaks were chosen by visual judgement at real pixel size — the curved text disintegrates below ≈ 256, the date disintegrates below ≈ 64, "EXIF" disintegrates below ≈ 32.
 
@@ -99,7 +100,7 @@ The four source SVGs are converted to PNGs by a small shell script (`installer/b
 Visual only — no unit tests for an icon. After integration:
 
 1. Build the app, launch it, verify the Dock icon shows the new mark.
-2. In Finder, view `CaptureOneDatePlugin.app` at icon-list, list, and gallery view sizes — confirm each tier renders cleanly and the right tier is picked at each size.
+2. In Finder, view `Exif Stamp.app` at icon-list, list, and gallery view sizes — confirm each tier renders cleanly and the right tier is picked at each size.
 3. Inspect the built `.app/Contents/Resources/AppIcon.icns` with Preview to confirm all 10 representations are present.
 4. Update the manual test plan to include "icon renders correctly in Dock and Finder".
 

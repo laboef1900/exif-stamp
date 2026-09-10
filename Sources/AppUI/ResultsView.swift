@@ -52,6 +52,8 @@ struct ResultsView: View {
         case .filesystemDateFailed(_, let u): return "EXIF written, but filesystem date failed: \(u)"
         case .backupFailed(_, let u): return "Backup failed, file not written: \(u)"
         case .metadataReloadFailed(let u): return "Files written, but Capture One did not reload metadata: \(u)"
+        case .exifToolMissing:        return "Install ExifTool (brew install exiftool) to write RAW"
+        case .restoreFailed(_, let u): return "Restore failed: \(u)"
         }
     }
 }

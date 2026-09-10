@@ -8,6 +8,8 @@ struct EditableVariantsList: View {
     let onClearLock: (EditableVariant.ID) -> Void
     let onOpenOverride: (EditableVariant.ID) -> Void
     let onMove: (IndexSet, Int) -> Void
+    let onRestorePrevious: (EditableVariant.ID) -> Void
+    let canRestore: (EditableVariant.ID) -> Bool
 
     private static let f: DateFormatter = {
         let f = DateFormatter(); f.dateStyle = .medium; f.timeStyle = .short; return f
@@ -30,6 +32,12 @@ struct EditableVariantsList: View {
             ForEach($variants) { $v in
                 row(for: $v)
                     .tag(v.id)
+                    .contextMenu {
+                        Button("Restore previous version") {
+                            onRestorePrevious(v.id)
+                        }
+                        .disabled(!canRestore(v.id))
+                    }
             }
             .onMove(perform: isSequential ? onMove : nil)
         }
