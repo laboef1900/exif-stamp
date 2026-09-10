@@ -1,9 +1,8 @@
 import Foundation
 
 /// Installs the bundled Capture One Scripts-menu launcher into the user's
-/// `~/Library/Scripts/Capture One Scripts/` on first run, so that DMG
-/// (drag-install) users get the same Scripts-menu entry that the .pkg
-/// installer's postinstall provides.
+/// `~/Library/Scripts/Capture One Scripts/` on first run, so DMG
+/// (drag-install) users get a Scripts-menu entry.
 ///
 /// Idempotent: only copies when the destination is missing, so a user who
 /// chooses to delete the script keeps it deleted on subsequent launches

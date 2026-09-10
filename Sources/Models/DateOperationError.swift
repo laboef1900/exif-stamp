@@ -9,4 +9,6 @@ public enum DateOperationError: Error, Equatable {
     case filesystemDateFailed(path: String, underlying: String)
     case backupFailed(path: String, underlying: String)
     case metadataReloadFailed(underlying: String)
+    case exifToolMissing(path: String)
+    case restoreFailed(path: String, underlying: String)
 }

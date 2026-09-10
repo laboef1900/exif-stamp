@@ -26,6 +26,8 @@ targets:
       - sdk: ScriptingBridge.framework
     settings:
       base:
+        PRODUCT_NAME: Exif Stamp
+        PRODUCT_MODULE_NAME: CaptureOneDatePlugin
         INFOPLIST_FILE: Sources/App/Info.plist
         CODE_SIGN_ENTITLEMENTS: Sources/App/CaptureOneDatePlugin.entitlements
         SWIFT_OBJC_BRIDGING_HEADER: Sources/CaptureOneBridge/CaptureOneDatePlugin-Bridging-Header.h
@@ -39,5 +41,16 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_OBJC_BRIDGING_HEADER: Sources/CaptureOneBridge/CaptureOneDatePlugin-Bridging-Header.h
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Exif Stamp.app/Contents/MacOS/Exif Stamp"
+        BUNDLE_LOADER: "$(TEST_HOST)"
     dependencies:
       - target: CaptureOneDatePlugin
+schemes:
+  CaptureOneDatePlugin:
+    build:
+      targets:
+        CaptureOneDatePlugin: all
+        CaptureOneDatePluginTests: [test]
+    test:
+      targets:
+        - CaptureOneDatePluginTests
