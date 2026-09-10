@@ -8,11 +8,15 @@ final class RootViewModelV11Tests: XCTestCase {
     private func makeVM(_ mock: MockCaptureOneBridge,
                         exifWriter: @escaping DateOperation.ExifWrite = { _, _, _ in },
                         exifReader: @escaping DateOperation.ExifRead = { _ in nil }) -> RootViewModel {
-        RootViewModel(
+        let suite = "c1dp-v11-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        return RootViewModel(
             bridge: mock,
             exifWriter: exifWriter,
             exifReader: exifReader,
-            fsWriter:   { _, _ in })
+            fsWriter:   { _, _ in },
+            defaults: defaults)
     }
 
     func test_loadSelection_populatesEditableVariants() {

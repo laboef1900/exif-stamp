@@ -99,7 +99,7 @@ The four source SVGs are converted to PNGs by a small shell script (`installer/b
 Visual only — no unit tests for an icon. After integration:
 
 1. Build the app, launch it, verify the Dock icon shows the new mark.
-2. In Finder, view `CaptureOneDatePlugin.app` at icon-list, list, and gallery view sizes — confirm each tier renders cleanly and the right tier is picked at each size.
+2. In Finder, view `Exif Stamp.app` at icon-list, list, and gallery view sizes — confirm each tier renders cleanly and the right tier is picked at each size.
 3. Inspect the built `.app/Contents/Resources/AppIcon.icns` with Preview to confirm all 10 representations are present.
 4. Update the manual test plan to include "icon renders correctly in Dock and Finder".
 

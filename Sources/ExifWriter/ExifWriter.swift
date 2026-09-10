@@ -3,6 +3,16 @@ import ImageIO
 
 public enum ExifWriter {
     public static func readCaptureDate(at url: URL) throws -> Date? {
+        if let fromImageIO = try? readCaptureDateViaImageIO(at: url) {
+            return fromImageIO
+        }
+        if RawExifTool.isRaw(at: url) {
+            return try RawExifTool.readCaptureDate(at: url)
+        }
+        return try readCaptureDateViaImageIO(at: url)
+    }
+
+    private static func readCaptureDateViaImageIO(at url: URL) throws -> Date? {
         guard let src = CGImageSourceCreateWithURL(url as CFURL, nil) else {
             throw DateOperationError.couldNotReadImage(path: url.path)
         }
@@ -35,6 +45,11 @@ public enum ExifWriter {
         guard FileManager.default.fileExists(atPath: url.path) else {
             throw DateOperationError.fileNotFound(path: url.path)
         }
+        let tz = timeZone ?? .current
+        if RawExifTool.isRaw(at: url) {
+            try RawExifTool.writeCaptureDate(date, timeZone: tz, at: url)
+            return
+        }
         guard let src = CGImageSourceCreateWithURL(url as CFURL, nil) else {
             throw DateOperationError.couldNotReadImage(path: url.path)
         }
@@ -42,7 +57,6 @@ public enum ExifWriter {
             throw DateOperationError.couldNotReadImage(path: url.path)
         }
 
-        let tz = timeZone ?? .current
         if (typeId as String) == "public.jpeg" {
             try JPEGExifPatch.writeCaptureDate(date, timeZone: tz, at: url)
             return

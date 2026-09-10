@@ -19,7 +19,7 @@ xcodebuild \
         exit 1
     }
 
-BUILT=$(find ~/Library/Developer/Xcode/DerivedData -path '*Release/CaptureOneDatePlugin.app' -type d 2>/dev/null \
+BUILT=$(find ~/Library/Developer/Xcode/DerivedData -path '*Release/Exif Stamp.app' -type d 2>/dev/null \
         | grep -v 'Index.noindex' | head -1)
 if [[ -z "$BUILT" || ! -d "$BUILT" ]]; then
     echo "Could not find built .app under DerivedData" >&2
@@ -27,6 +27,6 @@ if [[ -z "$BUILT" || ! -d "$BUILT" ]]; then
 fi
 
 mkdir -p dist
-rm -rf dist/CaptureOneDatePlugin.app
-cp -R "$BUILT" dist/CaptureOneDatePlugin.app
-echo "dist/CaptureOneDatePlugin.app"
+rm -rf "dist/Exif Stamp.app"
+cp -R "$BUILT" "dist/Exif Stamp.app"
+echo "dist/Exif Stamp.app"
