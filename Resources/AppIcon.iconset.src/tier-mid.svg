@@ -1,9 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#2A2A2C"/>
-      <stop offset="1" stop-color="#0E0E10"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.15" y2="1">
+      <stop offset="0" stop-color="#2A221C"/>
+      <stop offset="1" stop-color="#080706"/>
     </linearGradient>
+    <linearGradient id="ink" x1="0.22" y1="0" x2="0.78" y2="1">
+      <stop offset="0" stop-color="#FF6A42"/>
+      <stop offset="1" stop-color="#B32A18"/>
+    </linearGradient>
+    <radialGradient id="pad" cx="42%" cy="32%" r="70%">
+      <stop offset="0" stop-color="#3A2A24"/>
+      <stop offset="1" stop-color="#120E0C"/>
+    </radialGradient>
     <clipPath id="iconClip">
       <rect width="1024" height="1024" rx="229" ry="229"/>
     </clipPath>
@@ -11,17 +19,22 @@
 
   <g clip-path="url(#iconClip)">
     <rect width="1024" height="1024" fill="url(#bg)"/>
-    <g opacity="0.18">
-      <path d="M 0 716 L 307 358 L 512 563 L 717 256 L 1024 716 L 1024 1024 L 0 1024 Z" fill="#FAFAFA"/>
+    <g fill="#F3E6D8">
+      <path d="M 0 780 L 180 520 L 340 640 L 512 360 L 690 580 L 860 430 L 1024 700 L 1024 1024 L 0 1024 Z" opacity="0.10"/>
+      <path d="M 0 860 L 220 640 L 400 760 L 560 560 L 760 720 L 1024 620 L 1024 1024 L 0 1024 Z" opacity="0.07"/>
     </g>
 
-    <g transform="translate(512 512) rotate(-6)">
-      <circle r="317" fill="none" stroke="#E85A3A" stroke-width="22"/>
-      <circle r="266" fill="none" stroke="#E85A3A" stroke-width="13"/>
+    <g transform="translate(526 528)">
+      <circle r="348" fill="#000000" opacity="0.38"/>
+    </g>
 
-      <text x="0" y="-30" font-family="Menlo, ui-monospace, monospace" font-size="112" font-weight="800" fill="#E85A3A" text-anchor="middle" letter-spacing="8">EXIF</text>
-      <line x1="-153" y1="10" x2="153" y2="10" stroke="#E85A3A" stroke-width="11"/>
-      <text x="0" y="112" font-family="Menlo, ui-monospace, monospace" font-size="66" font-weight="800" fill="#E85A3A" text-anchor="middle" letter-spacing="5">2026·05·05</text>
+    <g transform="translate(512 508) rotate(-7)">
+      <circle r="268" fill="url(#pad)"/>
+      <circle r="318" fill="none" stroke="url(#ink)" stroke-width="28"/>
+      <circle r="258" fill="none" stroke="url(#ink)" stroke-width="14"/>
+      <text x="0" y="-24" font-family="Menlo, ui-monospace, monospace" font-size="128" font-weight="800" fill="#F3E6D8" text-anchor="middle" dominant-baseline="middle" letter-spacing="8">EXIF</text>
+      <line x1="-160" y1="52" x2="160" y2="52" stroke="#E44528" stroke-width="12" stroke-linecap="round"/>
+      <text x="0" y="124" font-family="Menlo, ui-monospace, monospace" font-size="72" font-weight="700" fill="#F3E6D8" text-anchor="middle" dominant-baseline="middle" letter-spacing="6">12 JUN</text>
     </g>
   </g>
 </svg>
