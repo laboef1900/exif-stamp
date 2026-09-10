@@ -1,7 +1,7 @@
-# Capture One Date Plugin
+# Exif Stamp
 
-Native macOS app that sets the EXIF capture date and filesystem date on photos
-selected in Capture One that have no date set. v1.0 supports JPEG, TIFF, HEIC.
+Native macOS app that stamps the EXIF capture date and filesystem date on photos
+selected in Capture One. JPEG, TIFF, and HEIC.
 
 ## Why
 
@@ -29,8 +29,8 @@ xcodebuild -project CaptureOneDatePlugin.xcodeproj \
 
 Three options, easiest first:
 
-1. **`.pkg` installer** — `installer/build-pkg.sh` produces `dist/CaptureOneDatePlugin.pkg`. Double-click to install: drops the `.app` into `/Applications` and the Capture One Scripts-menu launcher into `~/Library/Scripts/Capture One Scripts/`.
-2. **`.dmg`** — `installer/build-dmg.sh` produces `dist/CaptureOneDatePlugin.dmg`. Mount, drag the app to Applications. On first launch the app installs the Scripts-menu launcher into `~/Library/Scripts/Capture One Scripts/` automatically.
+1. **`.pkg` installer** — `installer/build-pkg.sh` produces `dist/CaptureOneDatePlugin.pkg`. Double-click to install: drops the `.app` into `/Applications` and the **Exif Stamp** Scripts-menu launcher into `~/Library/Scripts/Capture One Scripts/`.
+2. **`.dmg`** — `installer/build-dmg.sh` produces `dist/CaptureOneDatePlugin.dmg`. Mount, drag the app to Applications. On first launch the app installs the Scripts-menu launcher automatically.
 3. **From Xcode** — open the project, run the `CaptureOneDatePlugin` scheme. Useful for development.
 
 Because v1.0 is unsigned, macOS Gatekeeper will warn on first launch. Right-click the `.app` → Open → confirm. Subsequent launches are unprompted.
@@ -38,7 +38,7 @@ Because v1.0 is unsigned, macOS Gatekeeper will warn on first launch. Right-clic
 ## Use
 
 1. Open Capture One and select photos that have no capture date.
-2. Launch the app — either from the Dock/Spotlight, or from Capture One's **Scripts** menu (after installing via the `.pkg`). Approve the Automation permission prompt on first run.
+2. Launch **Exif Stamp** — Dock/Spotlight, or Capture One's **Scripts** menu. Approve the Automation permission prompt on first run.
 3. Pick a date in the date picker.
 4. Click Apply. Files with existing dates trigger a confirmation sheet.
 
@@ -52,3 +52,14 @@ The app modifies files in place. **Back up first.**
 ## Design
 
 See `docs/superpowers/specs/2026-04-28-capture-one-date-plugin-design.md`.
+
+## License
+
+Copyright (C) 2026 laboef1900
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+See [LICENSE](LICENSE) for the full terms.

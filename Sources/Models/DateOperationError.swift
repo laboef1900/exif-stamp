@@ -7,4 +7,6 @@ public enum DateOperationError: Error, Equatable {
     case formatNotSupported(path: String)
     case writeFailed(path: String, underlying: String)
     case filesystemDateFailed(path: String, underlying: String)
+    case backupFailed(path: String, underlying: String)
+    case metadataReloadFailed(underlying: String)
 }

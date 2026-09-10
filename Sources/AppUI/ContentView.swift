@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var showingResults = false
     @State private var showingCustomFormatSheet = false
     @State private var popoverRowID: EditableVariant.ID? = nil
+    @State private var pendingApplyTarget: RootViewModel.ApplyTarget = .all
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,15 +36,15 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingOverwriteSheet) {
             OverwriteWarningSheet(
-                datedVariants: rowsNeedingOverwriteConfirmation,
+                datedVariants: vm.rowsNeedingOverwriteConfirmation(target: pendingApplyTarget),
                 onSkip: {
                     showingOverwriteSheet = false
-                    vm.apply(target: .all, overwritePolicy: .skipExisting)
+                    vm.apply(target: pendingApplyTarget, overwritePolicy: .skipExisting)
                     showingResults = true
                 },
                 onOverwrite: {
                     showingOverwriteSheet = false
-                    vm.apply(target: .all, overwritePolicy: .overwriteAll)
+                    vm.apply(target: pendingApplyTarget, overwritePolicy: .overwriteAll)
                     showingResults = true
                 },
                 onCancel: { showingOverwriteSheet = false }
@@ -121,6 +122,12 @@ struct ContentView: View {
             footerControls
                 .padding(.horizontal).padding(.bottom)
         }
+        .environment(\.timeZone, vm.defaultTimeZone)
+        .environment(\.calendar, {
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = vm.defaultTimeZone
+            return cal
+        }())
     }
 
     private var footerControls: some View {
@@ -147,17 +154,9 @@ struct ContentView: View {
         }
     }
 
-    private var rowsNeedingOverwriteConfirmation: [VariantInfo] {
-        vm.editableVariants
-            .filter { v in
-                guard let target = v.targetDate, let current = v.info.currentExifDate else { return false }
-                return abs(current.timeIntervalSince(target)) >= 1.0 && !v.manuallyEdited
-            }
-            .map(\.info)
-    }
-
     private func promptOrApply(_ target: RootViewModel.ApplyTarget) {
-        if rowsNeedingOverwriteConfirmation.isEmpty {
+        pendingApplyTarget = target
+        if vm.rowsNeedingOverwriteConfirmation(target: target).isEmpty {
             vm.apply(target: target, overwritePolicy: .skipExisting)
             showingResults = true
         } else {

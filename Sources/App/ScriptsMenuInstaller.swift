@@ -7,9 +7,11 @@ import Foundation
 ///
 /// Idempotent: only copies when the destination is missing, so a user who
 /// chooses to delete the script keeps it deleted on subsequent launches
-/// (until they reinstall the app).
+/// (until they reinstall the app). Removes the pre-rename launcher so the
+/// Scripts menu does not show two entries.
 enum ScriptsMenuInstaller {
-    private static let scriptFilename = "Launch Capture One Date Plugin.scpt"
+    private static let scriptFilename = "Exif Stamp.scpt"
+    private static let legacyFilenames = ["Launch Capture One Date Plugin.scpt"]
     private static let captureOneScriptsFolder = "Capture One Scripts"
 
     static func ensureInstalled() {
@@ -20,8 +22,12 @@ enum ScriptsMenuInstaller {
             .appendingPathComponent(captureOneScriptsFolder)
         let dest = destDir.appendingPathComponent(scriptFilename)
 
+        for legacy in legacyFilenames {
+            try? fm.removeItem(at: destDir.appendingPathComponent(legacy))
+        }
+
         guard !fm.fileExists(atPath: dest.path) else { return }
-        guard let src = Bundle.main.url(forResource: "Launch Capture One Date Plugin", withExtension: "scpt") else { return }
+        guard let src = Bundle.main.url(forResource: "Exif Stamp", withExtension: "scpt") else { return }
 
         do {
             try fm.createDirectory(at: destDir, withIntermediateDirectories: true)

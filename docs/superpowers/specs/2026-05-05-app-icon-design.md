@@ -36,7 +36,7 @@ A circular ink-stamp mark — the "EXIF date stamp" — sitting on a dark photog
 
 | Tier      | Sizes (px)        | Contents                                                                 |
 |-----------|-------------------|--------------------------------------------------------------------------|
-| Full      | 1024, 512, 256    | Curved outer text "CAPTURE · ONE · DATE · PLUGIN ·", "EXIF", divider, "2026·05·05", both rings. Stamp ink uses vertical gradient. |
+| Full      | 1024, 512, 256    | Curved outer text "EXIF · STAMP · EXIF · STAMP ·", "EXIF", divider, "2026·05·05", both rings. Stamp ink uses vertical gradient. |
 | Mid       | 128, 64           | Curved outer text removed. "EXIF" and date scaled up. Strokes thickened. |
 | Small     | 32                | Date removed. Just the seal rings + "EXIF". Strokes thickened further so rings survive. |
 | Tiny      | 16                | Pure silhouette glyph: outer ring + filled red disc + dark horizontal bar. No type. Recognisable as a stamp. |

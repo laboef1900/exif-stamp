@@ -8,11 +8,12 @@
 
 set -e
 
-SRC="/Applications/CaptureOneDatePlugin.app/Contents/Resources/Launch Capture One Date Plugin.scpt"
+SRC="/Applications/CaptureOneDatePlugin.app/Contents/Resources/Exif Stamp.scpt"
 DEST_DIR="$HOME/Library/Scripts/Capture One Scripts"
 
 mkdir -p "$DEST_DIR"
 cp "$SRC" "$DEST_DIR/"
-chown "$USER" "$DEST_DIR/Launch Capture One Date Plugin.scpt" || true
+chown "$USER" "$DEST_DIR/Exif Stamp.scpt" || true
+rm -f "$DEST_DIR/Launch Capture One Date Plugin.scpt"
 
 exit 0

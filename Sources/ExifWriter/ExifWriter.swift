@@ -10,11 +10,15 @@ public enum ExifWriter {
             throw DateOperationError.couldNotReadImage(path: url.path)
         }
         let exif = props[kCGImagePropertyExifDictionary] as? [CFString: Any]
-        if let s = exif?[kCGImagePropertyExifDateTimeOriginal] as? String,
-           let d = ExifDateFormatter.utc.date(from: s) {
-            return d
+        guard let s = exif?[kCGImagePropertyExifDateTimeOriginal] as? String else { return nil }
+        let tz: TimeZone
+        if let offset = exif?[kCGImagePropertyExifOffsetTimeOriginal] as? String,
+           let parsed = ExifDateFormatter.timeZone(fromOffset: offset) {
+            tz = parsed
+        } else {
+            tz = TimeZone(secondsFromGMT: 0)!
         }
-        return nil
+        return ExifDateFormatter.date(from: s, timeZone: tz)
     }
 
     /// v1.0-compatible overload — defaults TZ to the system's current zone so
@@ -38,22 +42,26 @@ public enum ExifWriter {
             throw DateOperationError.couldNotReadImage(path: url.path)
         }
 
+        let tz = timeZone ?? .current
+        if (typeId as String) == "public.jpeg" {
+            try JPEGExifPatch.writeCaptureDate(date, timeZone: tz, at: url)
+            return
+        }
+
         let writableTypes = (CGImageDestinationCopyTypeIdentifiers() as? [String]) ?? []
         guard writableTypes.contains(typeId as String) else {
             throw DateOperationError.formatNotSupported(path: url.path)
         }
 
-        let formatted = ExifDateFormatter.utc.string(from: date)
+        let formatted = ExifDateFormatter.string(from: date, timeZone: tz)
+        let offset = formatOffset(tz, for: date)
 
         let existingProps = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any] ?? [:]
         var exif = (existingProps[kCGImagePropertyExifDictionary] as? [CFString: Any]) ?? [:]
         exif[kCGImagePropertyExifDateTimeOriginal] = formatted
         exif[kCGImagePropertyExifDateTimeDigitized] = formatted
-        if let tz = timeZone {
-            let offset = formatOffset(tz, for: date)
-            exif[kCGImagePropertyExifOffsetTimeOriginal] = offset
-            exif[kCGImagePropertyExifOffsetTimeDigitized] = offset
-        }
+        exif[kCGImagePropertyExifOffsetTimeOriginal] = offset
+        exif[kCGImagePropertyExifOffsetTimeDigitized] = offset
         var tiff = (existingProps[kCGImagePropertyTIFFDictionary] as? [CFString: Any]) ?? [:]
         tiff[kCGImagePropertyTIFFDateTime] = formatted
 

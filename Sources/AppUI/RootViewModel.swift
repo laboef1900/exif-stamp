@@ -22,19 +22,21 @@ public final class RootViewModel: ObservableObject {
     @Published public var tableSelection: Set<EditableVariant.ID> = []
 
     private let bridge: CaptureOneBridging
+    private let exifReader: DateOperation.ExifRead
     private let operation: DateOperation
 
     public init(bridge: CaptureOneBridging,
                 exifWriter: @escaping DateOperation.ExifWrite,
                 exifReader: @escaping DateOperation.ExifRead,
-                fsWriter:   @escaping DateOperation.FSWrite) {
+                fsWriter:   @escaping DateOperation.FSWrite,
+                backup:     @escaping DateOperation.Backup = { _ in }) {
         self.bridge = bridge
+        self.exifReader = exifReader
         self.operation = DateOperation(
-            bridge: bridge,
             exifWriter: exifWriter,
-            exifReader: exifReader,
             fsWriter: fsWriter,
-            reloader: { try bridge.reloadMetadata(for: $0) }
+            reloader: { try bridge.reloadMetadata(for: $0) },
+            backup: backup
         )
     }
 
@@ -44,7 +46,16 @@ public final class RootViewModel: ObservableObject {
         state = .loading
         do {
             let infos = try bridge.readSelection()
-            editableVariants = infos.map { EditableVariant(info: $0) }
+            var seen = Set<String>()
+            editableVariants = infos.compactMap { info in
+                guard seen.insert(info.filePath).inserted else { return nil }
+                let url = URL(fileURLWithPath: info.filePath)
+                let fileDate = (try? exifReader(url)) ?? info.currentExifDate
+                return EditableVariant(info: VariantInfo(
+                    filePath: info.filePath,
+                    filename: info.filename,
+                    currentExifDate: fileDate))
+            }
             recomputeAll()
             state = .ready
         } catch CaptureOneBridgeError.captureOneNotRunning {
@@ -106,14 +117,24 @@ public final class RootViewModel: ObservableObject {
     // MARK: - Apply
 
     public func apply(target: ApplyTarget, overwritePolicy: DateOperation.OverwritePolicy) {
-        let toApply: [EditableVariant]
+        results = operation.execute(
+            variants: variants(for: target),
+            defaultTimeZone: defaultTimeZone,
+            overwritePolicy: overwritePolicy)
+    }
+
+    public func rowsNeedingOverwriteConfirmation(target: ApplyTarget) -> [VariantInfo] {
+        variants(for: target).filter { v in
+            guard let targetDate = v.targetDate, let current = v.info.currentExifDate else { return false }
+            return abs(current.timeIntervalSince(targetDate)) >= 1.0 && !v.manuallyEdited
+        }.map(\.info)
+    }
+
+    public func variants(for target: ApplyTarget) -> [EditableVariant] {
         switch target {
-        case .all:
-            toApply = editableVariants
-        case .selected:
-            toApply = editableVariants.filter { tableSelection.contains($0.id) }
+        case .all: return editableVariants
+        case .selected: return editableVariants.filter { tableSelection.contains($0.id) }
         }
-        results = operation.execute(variants: toApply, defaultTimeZone: defaultTimeZone, overwritePolicy: overwritePolicy)
     }
 
     // MARK: - Private

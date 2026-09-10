@@ -18,7 +18,7 @@ targets:
     platform: macOS
     sources:
       - path: Sources
-      - path: Resources/Launch Capture One Date Plugin.scpt
+      - path: Resources/Exif Stamp.scpt
         buildPhase: resources
       - path: Resources/Assets.xcassets
         buildPhase: resources

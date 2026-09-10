@@ -1,4 +1,4 @@
-# Manual Test Plan — Capture One Date Plugin
+# Manual Test Plan — Exif Stamp
 
 Run before tagging a release. Each item is one assertion.
 
@@ -18,7 +18,7 @@ Run before tagging a release. Each item is one assertion.
 - [ ] Open the catalog with no selection. Refresh. Expect "No photos selected".
 
 ## Permission flow
-- [ ] On a fresh macOS user, first launch: expect macOS prompt "Capture One Date Plugin wants to control Capture One". Click OK.
+- [ ] On a fresh macOS user, first launch: expect macOS prompt "Exif Stamp wants to control Capture One". Click OK.
 - [ ] Toggle the permission off in System Settings → Privacy & Security → Automation. Refresh in the app. Expect "Automation permission denied" screen with deep-link button that opens the right settings pane.
 
 ## Happy path — undated only

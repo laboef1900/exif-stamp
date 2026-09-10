@@ -50,6 +50,8 @@ struct ResultsView: View {
         case .formatNotSupported:     return "Format not supported for writing"
         case .writeFailed(_, let u):  return "Write failed: \(u)"
         case .filesystemDateFailed(_, let u): return "EXIF written, but filesystem date failed: \(u)"
+        case .backupFailed(_, let u): return "Backup failed, file not written: \(u)"
+        case .metadataReloadFailed(let u): return "Files written, but Capture One did not reload metadata: \(u)"
         }
     }
 }

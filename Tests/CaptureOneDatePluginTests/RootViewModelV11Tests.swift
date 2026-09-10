@@ -6,11 +6,12 @@ final class RootViewModelV11Tests: XCTestCase {
     private let utc = TimeZone(secondsFromGMT: 0)!
 
     private func makeVM(_ mock: MockCaptureOneBridge,
-                        exifWriter: @escaping DateOperation.ExifWrite = { _, _, _ in }) -> RootViewModel {
+                        exifWriter: @escaping DateOperation.ExifWrite = { _, _, _ in },
+                        exifReader: @escaping DateOperation.ExifRead = { _ in nil }) -> RootViewModel {
         RootViewModel(
             bridge: mock,
             exifWriter: exifWriter,
-            exifReader: { _ in nil },
+            exifReader: exifReader,
             fsWriter:   { _, _ in })
     }
 
@@ -169,5 +170,80 @@ final class RootViewModelV11Tests: XCTestCase {
         // Strategy switch must not clear per-row TZ override.
         vm.setDefaultStrategy(.sameDate(Date()))
         XCTAssertEqual(vm.editableVariants[0].timeZoneOverride?.identifier, "Asia/Tokyo")
+    }
+
+    func test_rowsNeedingOverwriteConfirmation_all_listsDatedDifferingNonManual() {
+        let dated = Date(timeIntervalSince1970: 100)
+        let mock = MockCaptureOneBridge()
+        mock.selection = .success([
+            VariantInfo(filePath: "/undated.jpg", filename: "undated.jpg", currentExifDate: nil),
+            VariantInfo(filePath: "/dated.jpg", filename: "dated.jpg", currentExifDate: dated),
+            VariantInfo(filePath: "/locked.jpg", filename: "locked.jpg", currentExifDate: dated),
+        ])
+        let vm = makeVM(mock)
+        vm.loadSelection()
+        let target = Date(timeIntervalSince1970: 200)
+        vm.setDefaultStrategy(.sameDate(target))
+        vm.editTarget(rowID: "/locked.jpg", to: target)
+
+        XCTAssertEqual(
+            vm.rowsNeedingOverwriteConfirmation(target: .all).map(\.filePath),
+            ["/dated.jpg"])
+    }
+
+    func test_rowsNeedingOverwriteConfirmation_selected_ignoresUnselectedDatedRows() {
+        let dated = Date(timeIntervalSince1970: 100)
+        let mock = MockCaptureOneBridge()
+        mock.selection = .success([
+            VariantInfo(filePath: "/a.jpg", filename: "a.jpg", currentExifDate: dated),
+            VariantInfo(filePath: "/b.jpg", filename: "b.jpg", currentExifDate: nil),
+        ])
+        let vm = makeVM(mock)
+        vm.loadSelection()
+        vm.setDefaultStrategy(.sameDate(Date(timeIntervalSince1970: 200)))
+        vm.tableSelection = ["/b.jpg"]
+
+        XCTAssertTrue(vm.rowsNeedingOverwriteConfirmation(target: .selected).isEmpty)
+        XCTAssertEqual(vm.variants(for: .selected).map(\.info.filePath), ["/b.jpg"])
+    }
+
+    func test_apply_selected_skipExisting_doesNotWriteUnselectedDated() {
+        let dated = Date(timeIntervalSince1970: 100)
+        let target = Date(timeIntervalSince1970: 200)
+        let mock = MockCaptureOneBridge()
+        mock.selection = .success([
+            VariantInfo(filePath: "/dated.jpg", filename: "dated.jpg", currentExifDate: dated),
+            VariantInfo(filePath: "/undated.jpg", filename: "undated.jpg", currentExifDate: nil),
+        ])
+        var exifCalls: [URL] = []
+        let vm = makeVM(mock, exifWriter: { _, _, u in exifCalls.append(u) })
+        vm.loadSelection()
+        vm.setDefaultStrategy(.sameDate(target))
+        vm.tableSelection = ["/undated.jpg"]
+        vm.apply(target: .selected, overwritePolicy: .skipExisting)
+        XCTAssertEqual(exifCalls.map(\.path), ["/undated.jpg"])
+    }
+
+    func test_loadSelection_dedupesDuplicatePaths() {
+        let mock = MockCaptureOneBridge()
+        mock.selection = .success([
+            VariantInfo(filePath: "/a.jpg", filename: "a.jpg", currentExifDate: nil),
+            VariantInfo(filePath: "/a.jpg", filename: "a.jpg", currentExifDate: nil),
+        ])
+        let vm = makeVM(mock)
+        vm.loadSelection()
+        XCTAssertEqual(vm.editableVariants.map(\.info.filePath), ["/a.jpg"])
+    }
+
+    func test_loadSelection_prefersFileDateOverCatalog() {
+        let catalog = Date(timeIntervalSince1970: 100)
+        let file = Date(timeIntervalSince1970: 200)
+        let mock = MockCaptureOneBridge()
+        mock.selection = .success([
+            VariantInfo(filePath: "/a.jpg", filename: "a.jpg", currentExifDate: catalog),
+        ])
+        let vm = makeVM(mock, exifReader: { _ in file })
+        vm.loadSelection()
+        XCTAssertEqual(vm.editableVariants[0].info.currentExifDate, file)
     }
 }

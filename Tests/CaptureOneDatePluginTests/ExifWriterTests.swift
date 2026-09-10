@@ -1,5 +1,6 @@
 import XCTest
 import ImageIO
+import UniformTypeIdentifiers
 @testable import CaptureOneDatePlugin
 
 final class ExifWriterTests: XCTestCase {
@@ -87,5 +88,55 @@ final class ExifWriterTests: XCTestCase {
         try ExifWriter.writeCaptureDate(target, at: url)
         let read = try ExifWriter.readCaptureDate(at: url)!
         XCTAssertLessThan(abs(read.timeIntervalSince(target)), 1.5)
+    }
+
+    func test_writeCaptureDate_doesNotChangeJPEGPixels() throws {
+        let url = try makeLossyJPEG()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let before = try XCTUnwrap(pixelDigest(url))
+        let sizeBefore = try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int ?? 0
+        try ExifWriter.writeCaptureDate(Date(timeIntervalSince1970: 1_700_000_000), at: url)
+        let after = try XCTUnwrap(pixelDigest(url))
+        XCTAssertEqual(before, after, "EXIF write recompressed JPEG pixels")
+        let sizeAfter = try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int ?? 0
+        XCTAssertGreaterThan(sizeAfter, 0)
+        XCTAssertLessThan(abs(sizeAfter - sizeBefore), max(sizeBefore / 5, 512))
+    }
+
+    private func makeLossyJPEG() throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("c1dp-lossy-\(UUID().uuidString).jpg")
+        let width = 64, height = 64
+        let cs = CGColorSpaceCreateDeviceRGB()
+        let ctx = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                            bytesPerRow: width * 4, space: cs,
+                            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
+        for x in 0..<width {
+            ctx.setFillColor(CGColor(red: CGFloat(x) / CGFloat(width), green: 0.2, blue: 0.7, alpha: 1))
+            ctx.fill(CGRect(x: x, y: 0, width: 1, height: height))
+        }
+        let image = ctx.makeImage()!
+        guard let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.jpeg.identifier as CFString, 1, nil) else {
+            throw NSError(domain: "ExifWriterTests", code: 1)
+        }
+        CGImageDestinationAddImage(dest, image, [kCGImageDestinationLossyCompressionQuality: 0.4] as CFDictionary)
+        guard CGImageDestinationFinalize(dest) else {
+            throw NSError(domain: "ExifWriterTests", code: 2)
+        }
+        return url
+    }
+
+    private func pixelDigest(_ url: URL) -> String? {
+        guard let src = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let img = CGImageSourceCreateImageAtIndex(src, 0, [kCGImageSourceShouldCache: false] as CFDictionary)
+        else { return nil }
+        let width = img.width, height = img.height
+        var data = [UInt8](repeating: 0, count: width * height * 4)
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(data: &data, width: width, height: height, bitsPerComponent: 8,
+                                  bytesPerRow: width * 4, space: cs,
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        ctx.draw(img, in: CGRect(x: 0, y: 0, width: width, height: height))
+        return data.map { String(format: "%02x", $0) }.joined()
     }
 }

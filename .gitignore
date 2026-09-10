@@ -27,3 +27,6 @@ dist/
 
 # Brainstorming companion
 .superpowers/
+
+# Phase One SDK (proprietary, not redistributable)
+Capture One Plugin SDK (Mac) v1.0.1/

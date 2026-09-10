@@ -15,7 +15,7 @@ R = 297                      # arc radius
 FONT_SIZE = 46
 LETTER_SPACING = 10
 ADVANCE = FONT_SIZE * 0.6 + LETTER_SPACING   # Menlo char advance + tracking
-TEXT = "CAPTURE · ONE · DATE · PLUGIN ·"
+TEXT = "EXIF · STAMP · EXIF · STAMP ·"
 START_OFFSET = 0.06 * (2 * math.pi * R)      # 6% around the circle
 
 elements = []

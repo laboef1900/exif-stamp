@@ -9,7 +9,7 @@ if [[ ! -d dist/CaptureOneDatePlugin.app ]]; then
     installer/build-release.sh >/dev/null
 fi
 
-VOL_NAME="Capture One Date Plugin"
+VOL_NAME="Exif Stamp"
 DMG_PATH=dist/CaptureOneDatePlugin.dmg
 STAGE=dist/.dmg-stage
 
