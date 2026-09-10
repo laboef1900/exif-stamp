@@ -10,7 +10,7 @@ settings:
     MACOSX_DEPLOYMENT_TARGET: "13.0"
     DEAD_CODE_STRIPPING: YES
     ENABLE_HARDENED_RUNTIME: YES
-    CODE_SIGN_IDENTITY: "-"           # ad-hoc local signing for v1.0
+    CODE_SIGN_IDENTITY: "-"           # ad-hoc in Xcode; installer/build-release.sh re-signs
     CODE_SIGN_STYLE: Manual
 targets:
   CaptureOneDatePlugin:
