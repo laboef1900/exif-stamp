@@ -29,4 +29,15 @@ fi
 mkdir -p dist
 rm -rf "dist/Exif Stamp.app"
 cp -R "$BUILT" "dist/Exif Stamp.app"
+
+IDENTITY_HASH=$(installer/ensure-codesign-identity.sh)
+KEYCHAIN="$HOME/Library/Keychains/exif-stamp-codesign.keychain-db"
+security unlock-keychain -p "exif-stamp-codesign" "$KEYCHAIN"
+codesign --force --options runtime --timestamp=none \
+    --entitlements Sources/App/CaptureOneDatePlugin.entitlements \
+    --keychain "$KEYCHAIN" \
+    --sign "$IDENTITY_HASH" \
+    "dist/Exif Stamp.app"
+codesign --verify --verbose=2 "dist/Exif Stamp.app" >/tmp/c1dp-codesign.log 2>&1
+
 echo "dist/Exif Stamp.app"

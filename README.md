@@ -33,7 +33,7 @@ Easiest:
 brew install --cask --no-quarantine laboef1900/tap/exif-stamp
 ```
 
-That taps `laboef1900/tap` and drops **Exif Stamp** in `/Applications`. `--no-quarantine` is required because the build is unsigned; otherwise right-click → Open on first launch.
+That taps `laboef1900/tap` and drops **Exif Stamp** in `/Applications`. The release is self-signed, not notarized — `--no-quarantine` skips Gatekeeper, or right-click → Open on first launch.
 
 RAW writeback: `brew install exiftool`.
 
@@ -53,8 +53,8 @@ The app modifies files in place. **Back up first.**
 
 ## Status
 
-- v1.1: per-row dates, strategies, TZ, presets, history/undo, drop-files, RAW via ExifTool (`brew install exiftool`).
-- Unsigned local build. No notarisation.
+- v1.1.1: self-signed (not notarized). Per-row dates, strategies, TZ, presets, history/undo, drop-files, RAW via ExifTool.
+
 
 ## Design
 
