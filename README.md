@@ -27,12 +27,20 @@ xcodebuild -project CaptureOneDatePlugin.xcodeproj \
 
 ## Install
 
-Two options, easiest first:
+Easiest:
 
-1. **`.dmg`** — `installer/build-dmg.sh` produces `dist/Exif Stamp.dmg`. Mount, drag the app to Applications. On first launch the app installs the Scripts-menu launcher automatically.
-2. **From Xcode** — open the project, run the `CaptureOneDatePlugin` scheme. Useful for development.
+```bash
+brew install --cask --no-quarantine laboef1900/tap/exif-stamp
+```
 
-Because v1.0 is unsigned, macOS Gatekeeper will warn on first launch. Right-click the `.app` → Open → confirm. Subsequent launches are unprompted.
+That taps `laboef1900/tap` and drops **Exif Stamp** in `/Applications`. `--no-quarantine` is required because the build is unsigned; otherwise right-click → Open on first launch.
+
+RAW writeback: `brew install exiftool`.
+
+From source:
+
+1. **`.dmg`** — `installer/build-dmg.sh` produces `dist/Exif Stamp.dmg`. Mount, drag to Applications. First launch installs the Scripts-menu launcher.
+2. **Xcode** — `xcodegen generate` and run the `CaptureOneDatePlugin` scheme.
 
 ## Use
 
